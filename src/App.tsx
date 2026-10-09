@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ApplicationsProvider } from "@/context/ApplicationsContext";
 import { CampaignsProvider } from "@/context/CampaignsContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -14,7 +14,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 const App = () => (
   <ApplicationsProvider>
     <CampaignsProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           {/* Public KOL-facing campaign page — no dashboard chrome */}
           <Route element={<PublicLayout />}>
@@ -33,7 +33,7 @@ const App = () => (
 
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </CampaignsProvider>
   </ApplicationsProvider>
 );

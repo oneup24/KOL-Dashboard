@@ -8,13 +8,11 @@ interface ShareCampaignDialogProps {
 }
 
 const buildPublicUrl = (slug: string): string => {
-  if (typeof window === "undefined") return `/c/${slug}`;
-  // Vite exposes the configured `base` at build time as BASE_URL (always
-  // ends with "/"). On dev it's "/" so we get a clean localhost URL; on
-  // production it's "/kol-dashboard/" so the share link points at the
-  // real deployed path under the GitHub Pages project page.
+  if (typeof window === "undefined") return `#/c/${slug}`;
+  // HashRouter so the link preview in Messenger/WhatsApp fetches the
+  // site root (HTTP 200) instead of the 404.html fallback.
   const base = import.meta.env.BASE_URL;
-  return `${window.location.origin}${base}c/${slug}`;
+  return `${window.location.origin}${base}#/c/${slug}`;
 };
 
 const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) => {
@@ -68,7 +66,7 @@ const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) =>
               <p className="font-semibold text-slate-800 truncate">{campaign.name}</p>
               <p className="text-xs text-slate-500 truncate mt-0.5">{campaign.productName}</p>
               <a
-                href={`/c/${campaign.slug}`}
+                href={`#/c/${campaign.slug}`}
                 target="_blank"
                 rel="noreferrer noopener"
                 className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
