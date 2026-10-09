@@ -9,7 +9,12 @@ interface ShareCampaignDialogProps {
 
 const buildPublicUrl = (slug: string): string => {
   if (typeof window === "undefined") return `/c/${slug}`;
-  return `${window.location.origin}/c/${slug}`;
+  // Vite exposes the configured `base` at build time as BASE_URL (always
+  // ends with "/"). On dev it's "/" so we get a clean localhost URL; on
+  // production it's "/kol-dashboard/" so the share link points at the
+  // real deployed path under the GitHub Pages project page.
+  const base = import.meta.env.BASE_URL;
+  return `${window.location.origin}${base}c/${slug}`;
 };
 
 const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) => {

@@ -4,6 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FX Creations — KOL Dashboard</title>
+    <script>
+      // Single Page Apps for GitHub Pages
+      // https://github.com/rafgraph/spa-github-pages
+      // MIT License
+      // This script reverses the redirect done by 404.html: it reads
+      // the `p` (and `q`) query string, restores the original path on
+      // window.history, then the React app boots at the real URL.
+      (function (l) {
+        if (l.search) {
+          var q = {};
+          l.search
+            .slice(1)
+            .split("&")
+            .forEach(function (v) {
+              var a = v.split("=");
+              q[a[0]] = a.slice(1).join("=");
+            });
+          if (q.p !== undefined) {
+            window.history.replaceState(
+              null,
+              null,
+              l.pathname.slice(0, -1) +
+                (q.p || "") +
+                (q.q ? "?" + q.q.replace(/~and~/g, "&") : "") +
+                l.hash,
+            );
+          }
+        }
+      })(window.location);
+    </script>
   </head>
   <body class="bg-slate-50">
     <div id="root"></div>
