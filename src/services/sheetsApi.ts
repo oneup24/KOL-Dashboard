@@ -49,22 +49,59 @@ const parsePayload = (raw: string): Record<string, unknown> => {
 };
 
 const networkHint =
-  "Could not reach the Google Apps Script web app. If the URL is correct, this is usually a CORS " +
-  "block — make sure the deployment access is “Anyone” (not “Anyone with Google account”) and that " +
-  "you deployed a new version after editing the script.";
+  "Could not reach the Google Apps Script web app. Most likely one of: the script has not been " +
+  "deployed as a Web app yet (Deploy > New deployment > Web app), the deployment access is " +
+  "\u201cAnyone with Google account\u201d instead of \u201cAnyone\u201d, or you pasted the script " +
+  "editor URL (/macros/library/\u2026) rather than the web app URL (/macros/s/\u2026/exec).";
 
-export const checkHealth = async (url: string): Promise<{ spreadsheet: string; tabs: string[] }> => {
+/**
+ * Apps Script answers a request it cannot serve with a redirect to the Google
+ * sign-in page when the deployment access is restricted. Detect that so the
+ * error tells the truth instead of blaming CORS.
+ */
+const isSignInRedirect = (res: Response): boolean => {
+  const url = res.url ?? "";
+  return url.includes("accounts.google.com") || url.includes("ServiceLogin");
+};
+
+export interface SheetsHealth {
+  spreadsheet: string;
+  spreadsheetId: string;
+  spreadsheetUrl: string;
+  tabs: string[];
+}
+
+export const checkHealth = async (url: string): Promise<SheetsHealth> => {
   let res: Response;
   try {
     res = await request(`${url}?action=health`);
   } catch {
     throw new SheetsError("Could not reach the web app.", networkHint);
   }
+  if (isSignInRedirect(res)) {
+    throw new SheetsError(
+      "The web app asked us to sign in.",
+      "The deployment access is restricted. Open Deploy > Manage deployments > Edit and set " +
+        "\u201cWho has access\u201d to \u201cAnyone\u201d, then choose a new version.",
+    );
+  }
+  if (res.status === 404) {
+    throw new SheetsError(
+      "The web app has not been deployed yet.",
+      "Open the Apps Script editor > Deploy > New deployment > Web app. Execute as \u201cMe\u201d, " +
+        "access \u201cAnyone\u201d. Then copy the /macros/s/.../exec URL.",
+    );
+  }
   const payload = parsePayload(await res.text());
   if (!payload.ok) {
     throw new SheetsError(String(payload.error ?? "Health check failed."), networkHint);
   }
-  return { spreadsheet: String(payload.spreadsheet ?? ""), tabs: (payload.tabs as string[]) ?? [] };
+  return {
+    spreadsheet: String(payload.spreadsheet ?? ""),
+    spreadsheetId: String(payload.spreadsheetId ?? ""),
+    spreadsheetUrl: String(payload.spreadsheetUrl ?? ""),
+    tabs: (payload.tabs as string[]) ?? [],
+  };
 };
 
 export const readSnapshot = async (url: string): Promise<SheetsSnapshot> => {
@@ -73,6 +110,20 @@ export const readSnapshot = async (url: string): Promise<SheetsSnapshot> => {
     res = await request(`${url}?action=read`);
   } catch {
     throw new SheetsError("Could not reach the web app.", networkHint);
+  }
+  if (isSignInRedirect(res)) {
+    throw new SheetsError(
+      "The web app asked us to sign in.",
+      "The deployment access is restricted. Open Deploy > Manage deployments > Edit and set " +
+        "“Who has access” to “Anyone”, then choose a new version.",
+    );
+  }
+  if (res.status === 404) {
+    throw new SheetsError(
+      "The web app has not been deployed yet.",
+      "Open the Apps Script editor > Deploy > New deployment > Web app. Execute as “Me”, " +
+        "access “Anyone”. Then copy the /macros/s/.../exec URL.",
+    );
   }
   const payload = parsePayload(await res.text());
   if (!payload.ok) {
@@ -101,6 +152,20 @@ export const upsertRecord = async (
     });
   } catch {
     throw new SheetsError("Could not reach the web app.", networkHint);
+  }
+  if (isSignInRedirect(res)) {
+    throw new SheetsError(
+      "The web app asked us to sign in.",
+      "The deployment access is restricted. Open Deploy > Manage deployments > Edit and set " +
+        "\u201cWho has access\u201d to \u201cAnyone\u201d, then choose a new version.",
+    );
+  }
+  if (res.status === 404) {
+    throw new SheetsError(
+      "The web app has not been deployed yet.",
+      "Open the Apps Script editor > Deploy > New deployment > Web app. Execute as \u201cMe\u201d, " +
+        "access \u201cAnyone\u201d. Then copy the /macros/s/.../exec URL.",
+    );
   }
   const payload = parsePayload(await res.text());
   if (!payload.ok) {

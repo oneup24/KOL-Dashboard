@@ -36,6 +36,7 @@ export interface SheetsContextValue {
   errorHint?: string;
   snapshot?: SheetsSnapshot;
   spreadsheetName?: string;
+  spreadsheetUrl?: string;
   refresh: () => Promise<void>;
   testConnection: () => Promise<void>;
   push: (entity: SheetsEntity, record: unknown) => void;
@@ -72,6 +73,7 @@ export const SheetsProvider = ({ children }: { children: ReactNode }) => {
   const [errorHint, setErrorHint] = useState<string | undefined>(undefined);
   const [snapshot, setSnapshot] = useState<SheetsSnapshot | undefined>(undefined);
   const [spreadsheetName, setSpreadsheetName] = useState<string | undefined>(undefined);
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string | undefined>(undefined);
 
   const urlRef = useRef(url);
   urlRef.current = url;
@@ -121,6 +123,7 @@ export const SheetsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const info = await checkHealth(target);
       setSpreadsheetName(info.spreadsheet);
+      setSpreadsheetUrl(info.spreadsheetUrl || undefined);
       const data = await readSnapshot(target);
       setSnapshot(data);
       setLastSyncedAt(new Date().toISOString());
@@ -216,6 +219,7 @@ export const SheetsProvider = ({ children }: { children: ReactNode }) => {
       errorHint,
       snapshot,
       spreadsheetName,
+      spreadsheetUrl,
       refresh,
       testConnection,
       push,
@@ -235,6 +239,7 @@ export const SheetsProvider = ({ children }: { children: ReactNode }) => {
       errorHint,
       snapshot,
       spreadsheetName,
+      spreadsheetUrl,
       refresh,
       testConnection,
       push,

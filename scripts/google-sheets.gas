@@ -2,24 +2,28 @@
  * FX Creations — KOL Dashboard backend (Google Sheets + Apps Script)
  * ============================================================================
  *
- * SETUP (once, ~5 minutes)
+ * SETUP (once, ~3 minutes)
  * -----------------------
- * 1. Create a new Google Sheet — this is your database.
- * 2. Extensions > Apps Script > paste this whole file > Save.
- * 3. In the script, set SPREADSHEET_ID:
- *      - Either: Project Settings > Script Properties > add SPREADSHEET_ID = <your sheet id>
- *        (the sheet id is the long string in the URL, between /d/ and /edit)
- *      - Or leave it unset if the script is bound to the sheet (Extensions >
- *        Apps Script from inside the sheet) — getActiveSpreadsheet() is then used.
- * 4. Run the `setup` function once (it creates the four tabs + headers) and
- *    grant permission. You can also just call setup() from the Apps Script
- *    editor's function dropdown.
- * 5. Deploy > New deployment > type "Web app" >
+ * 1. Create a new script at https://script.google.com (or Extensions > Apps
+ *    Script from inside an existing Sheet) and paste this whole file > Save.
+ * 2. Deploy > New deployment > type "Web app" >
  *      Execute as:  Me
  *      Who has access: Anyone            <-- important, "Anyone" not "Anyone with Google account"
  *    Copy the Web app URL. It looks like:
  *      https://script.google.com/macros/s/AKfycbXXXXXXXX/exec
- * 6. Paste that URL into the dashboard: Settings > Google Sheets > Web app URL.
+ *    (The URL you get from the script *editor* — /macros/library/... — is NOT
+ *    this one. You need the URL from Deploy > New deployment.)
+ * 3. Paste that URL into the dashboard: Settings > Google Sheets > Web app URL.
+ *
+ * The spreadsheet is handled automatically:
+ *   - If you ran this from inside a Sheet, that Sheet is used.
+ *   - Otherwise the script creates "FX Creations — KOL Dashboard" for you on
+ *     first use and remembers it. The Settings page shows a link to it.
+ *   - To point at a specific Sheet, set the SPREADSHEET_ID script property
+ *     (Project Settings > Script Properties).
+ *
+ * You can also run the `setup` function once from the editor to create the
+ * tabs immediately instead of waiting for the first request.
  *
  * Every time you change the script you must Deploy > Manage deployments >
  * Edit > Version: New version, then it re-deploys.
@@ -114,15 +118,35 @@ function setup() {
   return "Tabs ready: " + Object.keys(TABS).map(function (e) { return TABS[e]; }).join(", ");
 }
 
+/**
+ * Resolves the spreadsheet this script writes to.
+ *
+ * Order of preference:
+ *   1. The SPREADSHEET_ID script property (always wins — set it if you want
+ *      to point the script at a specific Sheet).
+ *   2. The Sheet this script is bound to (Extensions > Apps Script from
+ *      inside the Sheet).
+ *   3. A brand new Sheet, created on first use. The id is remembered in the
+ *      script properties so the next run reuses it.
+ *
+ * That third option means a standalone script works with zero configuration:
+ * deploy it, paste the URL into the dashboard, and it makes its own Sheet.
+ */
 function getSpreadsheet() {
-  const id = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty("SPREADSHEET_ID");
   if (id) return SpreadsheetApp.openById(id);
+
   const active = SpreadsheetApp.getActiveSpreadsheet();
-  if (active) return active;
-  throw new Error(
-    "No spreadsheet bound. Set the SPREADSHEET_ID script property, or run this script " +
-      "from Extensions > Apps Script inside the target sheet.",
-  );
+  if (active) {
+    props.setProperty("SPREADSHEET_ID", active.getId());
+    return active;
+  }
+
+  const created = SpreadsheetApp.create("FX Creations — KOL Dashboard");
+  props.setProperty("SPREADSHEET_ID", created.getId());
+  setup();
+  return created;
 }
 
 function tabSheet(entity) {
@@ -266,7 +290,14 @@ function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) || "read";
     if (action === "health") {
-      return json({ ok: true, spreadsheet: getSpreadsheet().getName(), tabs: Object.keys(TABS) });
+      const ss = getSpreadsheet();
+      return json({
+        ok: true,
+        spreadsheet: ss.getName(),
+        spreadsheetId: ss.getId(),
+        spreadsheetUrl: ss.getUrl(),
+        tabs: Object.keys(TABS),
+      });
     }
     return json({ ok: true, data: readAll() });
   } catch (err) {

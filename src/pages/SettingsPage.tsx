@@ -61,6 +61,7 @@ const SettingsPage = () => {
     error,
     errorHint,
     spreadsheetName,
+    spreadsheetUrl,
     refresh,
     testConnection,
     triggerBuild,
@@ -208,7 +209,20 @@ const SettingsPage = () => {
               <dl className="space-y-3 text-sm">
                 <div>
                   <dt className="text-xs uppercase tracking-wider text-slate-500">Spreadsheet</dt>
-                  <dd className="text-slate-800">{spreadsheetName ?? "—"}</dd>
+                  <dd className="text-slate-800">
+                    {spreadsheetUrl ? (
+                      <a
+                        href={spreadsheetUrl}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="inline-flex items-center gap-1 text-slate-700 underline"
+                      >
+                        {spreadsheetName} <ExternalLink size={11} />
+                      </a>
+                    ) : (
+                      (spreadsheetName ?? "—")
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-wider text-slate-500">Last synced</dt>
