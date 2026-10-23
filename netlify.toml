@@ -1,0 +1,27 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Netlify serves from the domain root, unlike the GitHub Pages project page
+  # which lives under /KOL-Dashboard/. See vite.config.ts.
+  BASE_PATH = "/"
+
+# The app uses hash routing, so every route is served from the same document.
+# This rewrite is the safety net for direct visits to a path without a hash.
+[[redirects]]
+  from = "/*"
+  to = "/"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

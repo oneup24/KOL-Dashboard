@@ -9,10 +9,14 @@ interface ShareCampaignDialogProps {
 
 const buildPublicUrl = (slug: string): string => {
   if (typeof window === "undefined") return `#/c/${slug}`;
-  // HashRouter so the link preview in Messenger/WhatsApp fetches the
-  // site root (HTTP 200) instead of the 404.html fallback.
-  const base = import.meta.env.BASE_URL;
-  return `${window.location.origin}${base}#/c/${slug}`;
+  // HashRouter keeps every route on the same document, so the app root is
+  // wherever index.html actually lives — the domain root on Netlify, or
+  // /KOL-Dashboard/ on GitHub Pages. Deriving it from the live pathname
+  // (rather than import.meta.env.BASE_URL) keeps the share link correct on
+  // any host, and keeps the Messenger/WhatsApp preview fetching a 200.
+  const { origin, pathname } = window.location;
+  const root = pathname.endsWith("/") ? pathname : `${pathname}/`;
+  return `${origin}${root}#/c/${slug}`;
 };
 
 const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) => {

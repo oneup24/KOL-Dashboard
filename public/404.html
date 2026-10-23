@@ -2,34 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FX Creations KOL</title>
     <script>
-      // Single Page Apps for GitHub Pages
-      // https://github.com/rafgraph/spa-github-pages
-      // MIT License
-      // This script takes the current URL and converts the path + query
-      // into a query string, then redirects to the root with that info
-      // so the SPA router can handle the original URL.
-      var pathSegmentsToKeep = 1; // keep "/KOL-Dashboard" (project page)
+      // Fallback for direct visits to a path without a hash.
+      // The app uses hash routing, so everything lives on the index document
+      // — this just sends the visitor back to it, preserving the hash.
+      //
+      // GitHub Pages serves this file for unknown paths under the project
+      // page (/KOL-Dashboard/...), so the app root is the first path segment
+      // plus one. Netlify never reaches this file — netlify.toml rewrites
+      // unknown paths to "/" before the 404 handler runs.
+      var pathSegmentsToKeep = 1;
       var l = window.location;
+      var root = l.pathname.split("/").slice(0, 1 + pathSegmentsToKeep).join("/") + "/";
       l.replace(
-        l.protocol +
-          "//" +
-          l.hostname +
-          (l.port ? ":" + l.port : "") +
-          l.pathname
-            .split("/")
-            .slice(0, 1 + pathSegmentsToKeep)
-            .join("/") +
-          "/?p=/" +
-          l.pathname
-            .slice(1)
-            .split("/")
-            .slice(pathSegmentsToKeep)
-            .join("/")
-            .replace(/&/g, "~and~") +
-          (l.search ? "&q=" + l.search.slice(1).replace(/&/g, "~and~") : "") +
-          l.hash,
+        l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "") + root + (l.hash || ""),
       );
     </script>
   </head>
