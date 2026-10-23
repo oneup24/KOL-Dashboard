@@ -3,6 +3,8 @@ import PlatformBadge from "@/components/shared/PlatformBadge";
 import ApplicationStatusBadge from "@/components/applications/ApplicationStatusBadge";
 import { Mail, MapPin, MessageCircle, Tag } from "lucide-react";
 import { findStore } from "@/data/stores";
+import { formatFollowers } from "@/data/seedKols";
+import { useKol } from "@/context/KolContext";
 
 interface ApplicationRowProps {
   application: Application;
@@ -24,7 +26,11 @@ const formatDate = (iso: string): string => {
 };
 
 const ApplicationRow = ({ application, campaignName, selected, onSelect }: ApplicationRowProps) => {
+  const { getById } = useKol();
   const store = findStore(application.pickupStoreId);
+  // Contact details live on the CRM record, not on the application.
+  const kol = getById(application.kolId);
+
   return (
     <button
       type="button"
@@ -38,11 +44,14 @@ const ApplicationRow = ({ application, campaignName, selected, onSelect }: Appli
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h4 className="font-semibold text-slate-800 truncate">{application.kolName}</h4>
+            <h4 className="font-semibold text-slate-800 truncate">
+              {kol?.name ?? "Unknown KOL"}
+            </h4>
             <ApplicationStatusBadge status={application.status} />
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            {application.socialHandle} · {application.followers || "—"}
+            {kol ? `@${kol.handle}` : "—"}
+            {kol ? ` · ${formatFollowers(kol.followers)} followers` : ""}
           </p>
         </div>
         <span className="text-[10px] uppercase tracking-wider text-slate-400 whitespace-nowrap mt-1">
@@ -51,7 +60,7 @@ const ApplicationRow = ({ application, campaignName, selected, onSelect }: Appli
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-        <PlatformBadge platform={application.socialPlatform} />
+        {kol ? <PlatformBadge platform={kol.primaryPlatform} /> : null}
         <span className="inline-flex items-center gap-1">
           <Tag size={12} /> {campaignName}
         </span>
@@ -62,11 +71,11 @@ const ApplicationRow = ({ application, campaignName, selected, onSelect }: Appli
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1">
-          <MessageCircle size={12} /> {application.whatsapp}
+          <MessageCircle size={12} /> {kol?.whatsapp ?? "—"}
         </span>
         <span className="inline-flex items-center gap-1 min-w-0">
           <Mail size={12} className="flex-shrink-0" />
-          <span className="truncate max-w-[180px]">{application.email}</span>
+          <span className="truncate max-w-[180px]">{kol?.email ?? "—"}</span>
         </span>
       </div>
     </button>

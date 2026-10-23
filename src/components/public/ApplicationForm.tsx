@@ -1,7 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { AtSign, ChevronRight, Mail, MapPin, MessageCircle, Store, User } from "lucide-react";
-import { useApplications } from "@/context/ApplicationsContext";
+import {
+  useApplications,
+  type ApplicationRejectionReason,
+} from "@/context/ApplicationsContext";
 import { stores } from "@/data/stores";
+import { parseFollowerCount } from "@/data/seedKols";
 import type { Campaign, Platform } from "@/types";
 
 interface ApplicationFormProps {
@@ -11,48 +15,108 @@ interface ApplicationFormProps {
 
 const platformOptions: Platform[] = ["Instagram", "TikTok", "Xiaohongshu", "YouTube"];
 
+/** What the applicant is told when the application is refused. */
+const rejectionCopy: Record<ApplicationRejectionReason, string> = {
+  "campaign-closed":
+    "Applications for this campaign have closed. Please contact us directly if you would like to join a future campaign.",
+  "limit-reached":
+    "This campaign has reached its application limit. Please contact us directly.",
+  blacklisted:
+    "We are unable to process this application. Please contact us directly.",
+};
+
 const ApplicationForm = ({ campaign, onSubmitted }: ApplicationFormProps) => {
   const { addApplication } = useApplications();
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const uid = useId();
+
+  // Only the stores taking part in this campaign are offered; when the
+  // campaign has no store list every store is available.
+  const availableStores = useMemo(
+    () =>
+      campaign.storeIds.length > 0
+        ? stores.filter((s) => campaign.storeIds.includes(s.id))
+        : stores,
+    [campaign.storeIds],
+  );
 
   const [form, setForm] = useState({
-    kolName: "",
-    socialHandle: "",
-    socialPlatform: "Instagram" as Platform,
+    name: "",
+    handle: "",
+    platform: "Instagram" as Platform,
     followers: "",
     whatsapp: "",
     email: "",
-    pickupStoreId: stores[0]?.id ?? "",
+    pickupStoreId: availableStores[0]?.id ?? "",
     notes: "",
   });
+
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const update = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const selectedStore =
+    availableStores.find((s) => s.id === form.pickupStoreId) ?? availableStores[0];
+
+  // The answers to the campaign's custom questions, keyed by question id —
+  // stored on the application itself, not flattened into the notes.
+  const customAnswers = useMemo(() => {
+    const record: Record<string, string> = {};
+    for (const question of campaign.customQuestions) {
+      const value = (answers[question.id] ?? "").trim();
+      if (value) record[question.id] = value;
+    }
+    return record;
+  }, [answers, campaign.customQuestions]);
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    if (!form.kolName.trim() || !form.socialHandle.trim() || !form.whatsapp.trim() || !form.email.trim() || !form.pickupStoreId) {
+
+    const missingRequired = campaign.customQuestions.find(
+      (q) => q.required && !(answers[q.id] ?? "").trim(),
+    );
+    if (missingRequired) {
+      setError(`Please answer: ${missingRequired.question}`);
+      return;
+    }
+
+    if (
+      !form.name.trim() ||
+      !form.handle.trim() ||
+      !form.whatsapp.trim() ||
+      !form.email.trim() ||
+      !selectedStore
+    ) {
       setError("Please fill in your name, social handle, WhatsApp, email, and pickup store.");
       return;
     }
+
     setSubmitting(true);
+
     // Simulate a tiny async submit
     setTimeout(() => {
-      const created = addApplication({
+      const result = addApplication({
         campaignId: campaign.id,
-        kolName: form.kolName.trim(),
-        socialHandle: form.socialHandle.trim(),
-        socialPlatform: form.socialPlatform,
-        followers: form.followers.trim(),
+        name: form.name.trim(),
+        handle: form.handle.trim(),
+        platform: form.platform,
+        followers: parseFollowerCount(form.followers),
         whatsapp: form.whatsapp.trim(),
         email: form.email.trim(),
-        pickupStoreId: form.pickupStoreId,
+        pickupStoreId: selectedStore.id,
         notes: form.notes.trim() || undefined,
+        customAnswers,
       });
       setSubmitting(false);
-      onSubmitted(created.id);
+      if (!result.created) {
+        // The campaign closed, hit its cap, or the handle is blacklisted.
+        setError(rejectionCopy[result.reason]);
+        return;
+      }
+      onSubmitted(result.application.id);
     }, 400);
   };
 
@@ -73,31 +137,36 @@ const ApplicationForm = ({ campaign, onSubmitted }: ApplicationFormProps) => {
               label="Your name"
               required
               icon={User}
-              value={form.kolName}
-              onChange={(v) => update("kolName", v)}
+              value={form.name}
+              onChange={(v) => update("name", v)}
               placeholder="Jane Wong"
             />
             <Field
               label="Social media handle"
               required
               icon={AtSign}
-              value={form.socialHandle}
-              onChange={(v) => update("socialHandle", v)}
+              value={form.handle}
+              onChange={(v) => update("handle", v)}
               placeholder="@jane.shoots"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label>Platform</Label>
-              <div className="flex flex-wrap gap-2">
+              <Label id={`${uid}-platform-label`}>Platform</Label>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-labelledby={`${uid}-platform-label`}
+              >
                 {platformOptions.map((p) => {
-                  const active = form.socialPlatform === p;
+                  const active = form.platform === p;
                   return (
                     <button
                       key={p}
                       type="button"
-                      onClick={() => update("socialPlatform", p)}
+                      aria-pressed={active}
+                      onClick={() => update("platform", p)}
                       className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
                         active
                           ? "bg-slate-900 text-white border-slate-900"
@@ -140,27 +209,40 @@ const ApplicationForm = ({ campaign, onSubmitted }: ApplicationFormProps) => {
           </div>
 
           <div>
-            <Label required>
+            <Label required htmlFor={`${uid}-pickup-store`}>
               <Store size={14} className="inline mr-1 -mt-0.5 text-slate-400" /> Pickup store
             </Label>
             <select
+              id={`${uid}-pickup-store`}
               required
-              value={form.pickupStoreId}
+              value={selectedStore?.id ?? ""}
               onChange={(e) => update("pickupStoreId", e.target.value)}
               className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none"
             >
-              {stores.map((s) => (
+              {availableStores.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} — {s.district}
                 </option>
               ))}
             </select>
+            {selectedStore ? (
+              <div className="mt-3 bg-slate-50 border border-slate-100 rounded-lg p-3">
+                <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                  <MapPin size={14} className="text-slate-400" /> {selectedStore.name}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  {selectedStore.address}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Hours: {selectedStore.hours} · Tel: {selectedStore.phone}
+                </p>
+              </div>
+            ) : null}
             <p className="mt-2 text-xs text-slate-500 flex items-start gap-1.5">
               <MapPin size={12} className="mt-0.5 flex-shrink-0" />
               <span>
-                After we approve your application, we'll notify the store to prepare the product.
-                You can collect it during opening hours (
-                {stores.find((s) => s.id === form.pickupStoreId)?.hours ?? "see store page"}).
+                After we approve your application, we&apos;ll notify the store to prepare the
+                product. You can collect it during opening hours ({selectedStore?.hours ?? "see store page"}).
               </span>
             </p>
             <a
@@ -173,9 +255,36 @@ const ApplicationForm = ({ campaign, onSubmitted }: ApplicationFormProps) => {
             </a>
           </div>
 
+          {campaign.customQuestions.length > 0 ? (
+            <div className="space-y-4">
+              <div className="border-t border-slate-100 pt-6">
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  Campaign questions
+                </p>
+              </div>
+              {campaign.customQuestions.map((q) => (
+                <div key={q.id}>
+                  <Label required={q.required} htmlFor={`${uid}-q-${q.id}`}>
+                    {q.question}
+                  </Label>
+                  <textarea
+                    id={`${uid}-q-${q.id}`}
+                    rows={2}
+                    value={answers[q.id] ?? ""}
+                    onChange={(e) =>
+                      setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                    }
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none resize-none"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div>
-            <Label>Notes (optional)</Label>
+            <Label htmlFor={`${uid}-notes`}>Notes (optional)</Label>
             <textarea
+              id={`${uid}-notes`}
               value={form.notes}
               onChange={(e) => update("notes", e.target.value)}
               rows={3}
@@ -185,7 +294,10 @@ const ApplicationForm = ({ campaign, onSubmitted }: ApplicationFormProps) => {
           </div>
 
           {error ? (
-            <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <p
+              role="alert"
+              className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"
+            >
               {error}
             </p>
           ) : null}
@@ -219,33 +331,64 @@ interface FieldProps {
   icon?: typeof User;
 }
 
-const Field = ({ label, value, onChange, placeholder, type = "text", required, icon: Icon }: FieldProps) => (
-  <div>
-    <Label required={required}>{label}</Label>
-    <div className="relative">
-      {Icon ? (
-        <Icon
-          size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+const Field = ({ label, value, onChange, placeholder, type = "text", required, icon: Icon }: FieldProps) => {
+  const id = useId();
+  return (
+    <div>
+      <Label required={required} htmlFor={id}>
+        {label}
+      </Label>
+      <div className="relative">
+        {Icon ? (
+          <Icon
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          />
+        ) : null}
+        <input
+          id={id}
+          type={type}
+          required={required}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`w-full ${Icon ? "pl-9" : "pl-3"} pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none`}
         />
-      ) : null}
-      <input
-        type={type}
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full ${Icon ? "pl-9" : "pl-3"} pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none`}
-      />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-const Label = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
-  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-    {children}
-    {required ? <span className="text-rose-500 ml-0.5">*</span> : null}
-  </label>
-);
+const Label = ({
+  children,
+  required,
+  htmlFor,
+  id,
+}: {
+  children: ReactNode;
+  required?: boolean;
+  htmlFor?: string;
+  id?: string;
+}) => {
+  const className = "block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5";
+  const content = (
+    <>
+      {children}
+      {required ? <span className="text-rose-500 ml-0.5">*</span> : null}
+    </>
+  );
+  if (htmlFor) {
+    return (
+      <label htmlFor={htmlFor} className={className}>
+        {content}
+      </label>
+    );
+  }
+  return (
+    <span id={id} className={className}>
+      {content}
+    </span>
+  );
+};
 
 export default ApplicationForm;

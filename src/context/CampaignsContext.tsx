@@ -7,7 +7,17 @@ import {
   type ReactNode,
 } from "react";
 import { seedCampaigns } from "@/data/mockData";
-import type { Campaign, CampaignStatus, Platform } from "@/types";
+import type {
+  Campaign,
+  CampaignAudience,
+  CampaignDeliverable,
+  CampaignFeeModel,
+  CampaignQuestion,
+  CampaignStatus,
+  CampaignVariant,
+  KolTier,
+  Platform,
+} from "@/types";
 
 export interface NewCampaignInput {
   name: string;
@@ -25,8 +35,35 @@ export interface NewCampaignInput {
   productDescription: string;
   campaignBrief: string;
   requirements: string[];
-  deliverables: string[];
-  promoCode?: string;
+  /** Plain strings are accepted for convenience and normalised to deliverables. */
+  deliverables: (string | CampaignDeliverable)[];
+  // Targeting
+  targetKolCount?: number;
+  maxApplications?: number;
+  platforms?: Platform[];
+  kolTiers?: KolTier[];
+  audience?: Partial<CampaignAudience>;
+  // Schedule
+  applicationDeadline?: string;
+  postStartDate?: string;
+  postEndDate?: string;
+  // Product
+  variants?: CampaignVariant[];
+  // Content requirements
+  mandatoryTags?: string[];
+  mandatoryMentions?: string[];
+  disclosureText?: string;
+  // Money
+  feeModel?: CampaignFeeModel;
+  feePerKol?: number;
+  commissionPct?: number;
+  totalBudget?: number;
+  // Ops
+  briefDocUrl?: string;
+  storeIds?: string[];
+  campaignCode?: string;
+  language?: string;
+  customQuestions?: CampaignQuestion[];
 }
 
 interface CampaignsContextValue {
@@ -40,6 +77,11 @@ interface CampaignsContextValue {
 }
 
 const CampaignsContext = createContext<CampaignsContextValue | null>(null);
+
+const DEFAULT_DISCLOSURE = "#廣告 Advertisement";
+const DEFAULT_LANGUAGE = "en-HK";
+const DEFAULT_TARGET_KOL_COUNT = 10;
+const DEFAULT_MAX_APPLICATIONS = 50;
 
 const slugify = (name: string): string =>
   name
@@ -57,8 +99,34 @@ const uniqueSlug = (base: string, existing: Campaign[]): string => {
   return `${base}-${i}`;
 };
 
+/** First 3 alphanumeric characters of the name, uppercased — e.g. "AGS". */
+const deriveCampaignCode = (name: string): string => {
+  const cleaned = name.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return cleaned.slice(0, 3) || "GEN";
+};
+
+/** Makes sure the code is unique across campaigns (AGS -> AGS2 -> AGS3). */
+const uniqueCampaignCode = (base: string, existing: Campaign[]): string => {
+  if (!existing.some((c) => c.campaignCode === base)) return base;
+  let i = 2;
+  while (existing.some((c) => c.campaignCode === `${base}${i}`)) i += 1;
+  return `${base}${i}`;
+};
+
 const nextId = (existing: Campaign[]): number =>
   existing.length === 0 ? 1 : Math.max(...existing.map((c) => c.id)) + 1;
+
+const toDeliverables = (
+  input: (string | CampaignDeliverable)[],
+  platform: Platform,
+): CampaignDeliverable[] =>
+  input
+    .map((d) =>
+      typeof d === "string"
+        ? { platform, type: d.trim(), count: 1 }
+        : { ...d, type: d.type.trim() },
+    )
+    .filter((d) => d.type.length > 0);
 
 export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>(seedCampaigns);
@@ -87,8 +155,42 @@ export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
         productDescription: input.productDescription.trim(),
         campaignBrief: input.campaignBrief.trim(),
         requirements: input.requirements.filter((r) => r.trim()),
-        deliverables: input.deliverables.filter((d) => d.trim()),
-        promoCode: input.promoCode?.trim() || undefined,
+        deliverables: toDeliverables(input.deliverables, input.platform),
+        // Targeting
+        targetKolCount: input.targetKolCount ?? input.kols ?? DEFAULT_TARGET_KOL_COUNT,
+        maxApplications: input.maxApplications ?? DEFAULT_MAX_APPLICATIONS,
+        platforms: input.platforms && input.platforms.length > 0 ? input.platforms : [input.platform],
+        kolTiers: input.kolTiers ?? [],
+        audience: {
+          ageRange: input.audience?.ageRange ?? "18-34",
+          genderSplit: input.audience?.genderSplit ?? "70% F / 30% M",
+          interests: input.audience?.interests ?? [],
+          region: input.audience?.region ?? input.region.trim(),
+        },
+        // Schedule
+        applicationDeadline: input.applicationDeadline ?? input.endDate,
+        postStartDate: input.postStartDate ?? input.endDate,
+        postEndDate: input.postEndDate ?? input.endDate,
+        // Product
+        variants: input.variants ?? [],
+        // Content requirements
+        mandatoryTags: input.mandatoryTags ?? [],
+        mandatoryMentions: input.mandatoryMentions ?? ["@fxcreations"],
+        disclosureText: input.disclosureText ?? DEFAULT_DISCLOSURE,
+        // Money
+        feeModel: input.feeModel ?? "gift",
+        feePerKol: input.feePerKol ?? 0,
+        commissionPct: input.commissionPct ?? 0,
+        totalBudget: input.totalBudget ?? 0,
+        // Ops
+        briefDocUrl: input.briefDocUrl?.trim() || undefined,
+        storeIds: input.storeIds ?? [],
+        campaignCode: uniqueCampaignCode(
+          input.campaignCode?.trim().toUpperCase() || deriveCampaignCode(input.name),
+          campaigns,
+        ),
+        language: input.language ?? DEFAULT_LANGUAGE,
+        customQuestions: input.customQuestions ?? [],
       };
       setCampaigns((prev) => [created, ...prev]);
       return created;
@@ -106,6 +208,15 @@ export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
         if (partial.name && partial.name !== c.name) {
           const base = slugify(partial.name);
           if (base) next.slug = uniqueSlug(base, prev.filter((x) => x.id !== id));
+        }
+        // The campaign code feeds the promo codes, so it has to stay unique
+        // across campaigns — the campaign being edited is excluded from the
+        // check (same rule as `addCampaign`).
+        if (typeof partial.campaignCode === "string") {
+          const base = partial.campaignCode.trim().toUpperCase();
+          next.campaignCode = base
+            ? uniqueCampaignCode(base, prev.filter((x) => x.id !== id))
+            : c.campaignCode;
         }
         return next;
       }),
@@ -131,6 +242,7 @@ export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
         status: "Draft",
         progress: 0,
         kols: 0,
+        campaignCode: uniqueCampaignCode(deriveCampaignCode(copyName), campaigns),
       };
       setCampaigns((prev) => [dup, ...prev]);
       return dup;

@@ -1,4 +1,5 @@
-import { Clock, DollarSign, Share2, Users } from "lucide-react";
+import { Clock, DollarSign, Eye, Share2, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import ProgressBar from "@/components/shared/ProgressBar";
 import PlatformBadge from "@/components/shared/PlatformBadge";
 import SectionCard from "@/components/shared/SectionCard";
@@ -93,6 +94,12 @@ const CampaignsTable = ({ campaigns, applicationCounts, onShare, onEdit }: Campa
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="inline-flex items-center gap-1">
+                      <Link
+                        to={`/campaigns/${c.id}`}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50"
+                      >
+                        <Eye size={14} /> View
+                      </Link>
                       <button
                         type="button"
                         onClick={() => onShare(c)}

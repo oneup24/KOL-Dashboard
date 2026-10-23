@@ -45,3 +45,10 @@ export const stores: Store[] = [
 
 export const findStore = (id: string): Store | undefined =>
   stores.find((s) => s.id === id);
+
+/** Resolves a list of store ids (e.g. `campaign.storeIds`) to store records. */
+export const findStores = (ids: string[]): Store[] =>
+  ids.map((id) => findStore(id)).filter((s): s is Store => Boolean(s));
+
+/** All store ids, handy for pickers and validation. */
+export const storeIds: string[] = stores.map((s) => s.id);

@@ -5,9 +5,10 @@ import type { Kol } from "@/types";
 
 interface KolGridProps {
   kols: Kol[];
+  onOpenProfile: (kol: Kol) => void;
 }
 
-const KolGrid = ({ kols }: KolGridProps) => {
+const KolGrid = ({ kols, onOpenProfile }: KolGridProps) => {
   if (kols.length === 0) {
     return (
       <EmptyState
@@ -21,7 +22,7 @@ const KolGrid = ({ kols }: KolGridProps) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {kols.map((kol) => (
-        <KolCard key={kol.id} kol={kol} />
+        <KolCard key={kol.id} kol={kol} onOpenProfile={onOpenProfile} />
       ))}
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import ApplicationForm from "@/components/public/ApplicationForm";
 import ApplicationSuccess from "@/components/public/ApplicationSuccess";
 import CampaignBrief from "@/components/public/CampaignBrief";
@@ -7,13 +7,18 @@ import CampaignHero from "@/components/public/CampaignHero";
 import PublicFooter from "@/components/public/PublicFooter";
 import PublicHeader from "@/components/public/PublicHeader";
 import { useCampaigns } from "@/context/CampaignsContext";
-import { ArrowLeft, Clock } from "lucide-react";
+import { useCampaignMeta } from "@/components/public/useCampaignMeta";
+import { isPastDeadline } from "@/components/shared/workflow";
+import { Clock, ExternalLink } from "lucide-react";
 
 const PublicCampaignPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { getBySlug } = useCampaigns();
   const campaign = slug ? getBySlug(slug) : undefined;
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+
+  // Social preview tags for the share link.
+  useCampaignMeta(campaign);
 
   if (!campaign) {
     return (
@@ -28,25 +33,35 @@ const PublicCampaignPage = () => {
             The link you used may have expired or is incorrect. Please check with the FX Creations
             marketing team.
           </p>
-          <Link
-            to="/"
+          {/*
+            An internal link here would drop the KOL into the marketer
+            dashboard — the only safe destination is the public website.
+          */}
+          <a
+            href="https://fxcreations.com"
+            target="_blank"
+            rel="noreferrer noopener"
             className="mt-8 inline-flex items-center gap-2 text-sm text-slate-700 underline"
           >
-            <ArrowLeft size={14} /> Back to FX Creations
-          </Link>
+            <ExternalLink size={14} /> Visit fxcreations.com
+          </a>
         </div>
         <PublicFooter />
       </div>
     );
   }
 
-  // Only show the public application form for campaigns that are open to KOLs
-  const isOpen = campaign.status === "Active" || campaign.status === "Planning";
+  // The public application form is only shown for campaigns that are open to
+  // KOLs AND whose application deadline has not passed yet.
+  const deadline = campaign.applicationDeadline || campaign.endDate;
+  const deadlinePassed = isPastDeadline(deadline);
+  const isOpen =
+    (campaign.status === "Active" || campaign.status === "Planning") && !deadlinePassed;
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <PublicHeader campaignName={campaign.name} />
-      <CampaignHero campaign={campaign} />
+      <CampaignHero campaign={campaign} canApply={isOpen} />
       <CampaignBrief campaign={campaign} />
 
       {isOpen ? (
@@ -62,10 +77,22 @@ const PublicCampaignPage = () => {
       ) : (
         <section className="bg-slate-50 border-t border-slate-100">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center">
-            <h2 className="text-2xl font-bold text-slate-900">Applications closed</h2>
+            <h2 className="text-2xl font-bold text-slate-900">
+              {deadlinePassed ? "Applications closed" : "Applications not open"}
+            </h2>
             <p className="mt-2 text-slate-600">
-              This campaign isn't currently accepting new KOL applications. Check back later or
-              follow <span className="font-medium">@fxcreations</span> for upcoming campaigns.
+              {deadlinePassed ? (
+                <>
+                  Applications for this campaign closed on {deadline}. Follow{" "}
+                  <span className="font-medium">@fxcreations</span> for upcoming campaigns.
+                </>
+              ) : (
+                <>
+                  This campaign isn&apos;t currently accepting new KOL applications. Check back
+                  later or follow <span className="font-medium">@fxcreations</span> for upcoming
+                  campaigns.
+                </>
+              )}
             </p>
           </div>
         </section>

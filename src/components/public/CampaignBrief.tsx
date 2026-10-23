@@ -1,4 +1,5 @@
 import { Check, ListChecks, Megaphone, Tag } from "lucide-react";
+import PlatformBadge from "@/components/shared/PlatformBadge";
 import type { Campaign } from "@/types";
 
 interface CampaignBriefProps {
@@ -29,16 +30,51 @@ const CampaignBrief = ({ campaign }: CampaignBriefProps) => (
         <h3 className="mt-8 text-sm font-semibold text-slate-500 uppercase tracking-wider">
           Deliverables
         </h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {campaign.deliverables.map((d) => (
-            <span
-              key={d}
-              className="px-3 py-1 text-sm font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200"
+        <div className="mt-3 space-y-2">
+          {campaign.deliverables.map((d, index) => (
+            <div
+              key={`${d.platform}-${d.type}-${d.count}-${index}`}
+              className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100"
             >
-              {d}
-            </span>
+              <span className="font-semibold text-slate-800 text-sm">
+                {d.count}× {d.type}
+              </span>
+              <PlatformBadge platform={d.platform} />
+              {d.length ? (
+                <span className="text-xs text-slate-500">· {d.length}</span>
+              ) : null}
+              {d.notes ? (
+                <span className="text-xs text-slate-500">· {d.notes}</span>
+              ) : null}
+            </div>
           ))}
         </div>
+
+        {campaign.mandatoryTags.length > 0 || campaign.mandatoryMentions.length > 0 ? (
+          <div className="mt-8">
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+              Mandatory tags &amp; mentions
+            </h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {campaign.mandatoryTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 text-sm font-medium rounded-full bg-violet-50 text-violet-700 border border-violet-200"
+                >
+                  {tag}
+                </span>
+              ))}
+              {campaign.mandatoryMentions.map((mention) => (
+                <span
+                  key={mention}
+                  className="px-3 py-1 text-sm font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200"
+                >
+                  {mention}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <aside className="bg-slate-50 rounded-2xl border border-slate-100 p-6 h-fit">
@@ -56,18 +92,28 @@ const CampaignBrief = ({ campaign }: CampaignBriefProps) => (
           </li>
           <li className="flex items-start gap-2">
             <Check size={16} className="text-emerald-500 mt-0.5" />
-            Exclusive promo code for your audience
-            {campaign.promoCode ? (
-              <span className="ml-1 font-mono text-xs bg-white border border-slate-200 px-1.5 py-0.5 rounded">
-                {campaign.promoCode}
-              </span>
-            ) : null}
+            Exclusive promo code for your audience (issued after approval)
           </li>
           <li className="flex items-start gap-2">
             <Check size={16} className="text-emerald-500 mt-0.5" />
             Featured on @fxcreations if performance is strong
           </li>
         </ul>
+
+        {campaign.feeModel !== "gift" ? (
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Fee model
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              {campaign.feeModel === "flat"
+                ? `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} per KOL`
+                : campaign.feeModel === "commission"
+                  ? `${campaign.commissionPct}% commission per sale`
+                  : `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} plus ${campaign.commissionPct}% commission`}
+            </p>
+          </div>
+        ) : null}
       </aside>
     </div>
   </section>

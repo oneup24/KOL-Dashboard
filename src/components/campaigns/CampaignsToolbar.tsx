@@ -32,6 +32,7 @@ const CampaignsToolbar = ({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search campaigns by name or manager..."
+          aria-label="Search campaigns by name or manager"
           className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none transition"
         />
       </div>

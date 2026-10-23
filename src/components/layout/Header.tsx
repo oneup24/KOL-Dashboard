@@ -15,7 +15,9 @@ const titleMap: Record<string, string> = {
 
 const Header = ({ onToggleSidebar }: HeaderProps) => {
   const { pathname } = useLocation();
-  const title = titleMap[pathname] ?? "Dashboard";
+  const title = pathname.startsWith("/campaigns/")
+    ? "Campaign pipeline"
+    : (titleMap[pathname] ?? "Dashboard");
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 flex-shrink-0">
@@ -40,6 +42,7 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
           <input
             type="text"
             placeholder="Search campaigns, KOLs..."
+            aria-label="Search campaigns and KOLs"
             className="pl-10 pr-4 py-2 bg-slate-100 border-transparent rounded-full text-sm focus:bg-white focus:border-slate-300 focus:ring-2 focus:ring-slate-100 outline-none transition-all w-64"
           />
         </div>

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import type {
   Campaign,
-  Kol,
+  KolSummary,
   KpiStat,
   PerformancePoint,
   PlatformShare,
@@ -86,6 +86,8 @@ const HERO_IMG_BRAND =
 const HERO_IMG_TRAVEL =
   "https://images.unsplash.com/photo-1501554728187-ce583db33af7?auto=format&fit=crop&w=1200&q=80";
 
+const DISCLOSURE_TEXT = "#廣告 Advertisement";
+
 export const seedCampaigns: Campaign[] = [
   {
     id: 1,
@@ -111,8 +113,66 @@ export const seedCampaigns: Campaign[] = [
       "Tag @fxcreations + use #AGSSummer",
       "Mention AGS Pro suspension feature",
     ],
-    deliverables: ["1 Reel", "3 Stories", "1 set of stills (min. 3 photos)"],
-    promoCode: "FXSUMMER20",
+    deliverables: [
+      { platform: "Instagram", type: "Reel", count: 1, length: "60–90s" },
+      { platform: "Instagram", type: "Story", count: 3 },
+      {
+        platform: "Instagram",
+        type: "Photo set",
+        count: 3,
+        notes: "Minimum 3 photos, daylight preferred",
+      },
+    ],
+    // Targeting
+    targetKolCount: 12,
+    maxApplications: 60,
+    platforms: ["Instagram", "TikTok"],
+    kolTiers: ["Micro", "Mid", "Macro"],
+    audience: {
+      ageRange: "18-34",
+      genderSplit: "70% F / 30% M",
+      interests: ["Fashion", "Travel", "Lifestyle"],
+      region: "HK",
+    },
+    // Schedule
+    applicationDeadline: "2026-10-20",
+    postStartDate: "2026-10-15",
+    postEndDate: "2026-11-15",
+    // Product
+    variants: [
+      {
+        id: "ags-sand",
+        label: "AGS Pro — Sand",
+        sku: "FX-AGS-SND-28",
+        stockByStore: { cwb: 6, mk: 4, tst: 5, st: 3, tm: 2 },
+      },
+    ],
+    // Content requirements
+    mandatoryTags: ["#AGSSummer"],
+    mandatoryMentions: ["@fxcreations"],
+    disclosureText: DISCLOSURE_TEXT,
+    // Money
+    feeModel: "gift",
+    feePerKol: 0,
+    commissionPct: 0,
+    totalBudget: 15000,
+    // Ops
+    briefDocUrl: "https://drive.google.com/fx/summer-collection-2026-brief",
+    storeIds: ["cwb", "mk", "tst"],
+    campaignCode: "SUM",
+    language: "en-HK",
+    customQuestions: [
+      {
+        id: "q-shoot-window",
+        question: "When can you shoot and publish the content?",
+        required: true,
+      },
+      {
+        id: "q-avg-views",
+        question: "Roughly how many views do you average on a Reel?",
+        required: false,
+      },
+    ],
   },
   {
     id: 2,
@@ -138,7 +198,55 @@ export const seedCampaigns: Campaign[] = [
       "Show real packing for a 3-day trip",
       "Compare against one other premium backpack",
     ],
-    deliverables: ["1 long-form YouTube video", "2 short clips for IG/TikTok"],
+    deliverables: [
+      { platform: "YouTube", type: "Long-form video", count: 1, length: "8–12 min" },
+      { platform: "TikTok", type: "Short clip", count: 2, length: "30–60s" },
+    ],
+    // Targeting
+    targetKolCount: 5,
+    maxApplications: 25,
+    platforms: ["YouTube", "Instagram"],
+    kolTiers: ["Mid", "Macro", "Mega"],
+    audience: {
+      ageRange: "25-44",
+      genderSplit: "60% M / 40% F",
+      interests: ["Tech", "Travel", "Outdoor"],
+      region: "TW",
+    },
+    // Schedule
+    applicationDeadline: "2026-11-01",
+    postStartDate: "2026-11-01",
+    postEndDate: "2026-12-05",
+    // Product
+    variants: [
+      {
+        id: "ags-black",
+        label: "AGS Pro — Black",
+        sku: "FX-AGS-BLK-28",
+        stockByStore: { cwb: 4, mk: 3, tst: 4, st: 2, tm: 2 },
+      },
+    ],
+    // Content requirements
+    mandatoryTags: ["#AGSPro"],
+    mandatoryMentions: ["@fxcreations"],
+    disclosureText: DISCLOSURE_TEXT,
+    // Money
+    feeModel: "flat",
+    feePerKol: 800,
+    commissionPct: 0,
+    totalBudget: 8000,
+    // Ops
+    briefDocUrl: "https://drive.google.com/fx/ags-pro-review-brief",
+    storeIds: ["cwb", "tst", "mk"],
+    campaignCode: "AGS",
+    language: "zh-TW",
+    customQuestions: [
+      {
+        id: "q-review-angle",
+        question: "What angle would you take for the review?",
+        required: true,
+      },
+    ],
   },
   {
     id: 3,
@@ -163,7 +271,55 @@ export const seedCampaigns: Campaign[] = [
       "Use #FXBackToSchool",
       "Feature the laptop sleeve",
     ],
-    deliverables: ["1 TikTok", "1 carousel post"],
+    deliverables: [
+      { platform: "TikTok", type: "TikTok", count: 1, length: "15–30s" },
+      { platform: "Instagram", type: "Carousel post", count: 1 },
+    ],
+    // Targeting
+    targetKolCount: 20,
+    maxApplications: 120,
+    platforms: ["TikTok", "Instagram"],
+    kolTiers: ["Nano", "Micro", "Mid", "Macro"],
+    audience: {
+      ageRange: "13-24",
+      genderSplit: "45% F / 55% M",
+      interests: ["Fashion", "Tech", "Lifestyle"],
+      region: "HK",
+    },
+    // Schedule
+    applicationDeadline: "2026-08-05",
+    postStartDate: "2026-08-10",
+    postEndDate: "2026-09-01",
+    // Product
+    variants: [
+      {
+        id: "campus-navy",
+        label: "Campus Backpack — Navy",
+        sku: "FX-CMP-NVY-22",
+        stockByStore: { cwb: 8, mk: 6, tst: 8, st: 5, tm: 4 },
+      },
+    ],
+    // Content requirements
+    mandatoryTags: ["#FXBackToSchool"],
+    mandatoryMentions: ["@fxcreations"],
+    disclosureText: DISCLOSURE_TEXT,
+    // Money
+    feeModel: "gift",
+    feePerKol: 0,
+    commissionPct: 0,
+    totalBudget: 25000,
+    // Ops
+    briefDocUrl: "https://drive.google.com/fx/back-to-school-2026-brief",
+    storeIds: ["cwb", "mk", "tst", "st", "tm"],
+    campaignCode: "BTS",
+    language: "en-HK",
+    customQuestions: [
+      {
+        id: "q-school-type",
+        question: "Are you a secondary school, university or working adult?",
+        required: false,
+      },
+    ],
   },
   {
     id: 4,
@@ -188,7 +344,54 @@ export const seedCampaigns: Campaign[] = [
       "Mention the gift packaging",
       "Use #FXHolidayGifts",
     ],
-    deliverables: ["1 RED post", "1 short video"],
+    deliverables: [
+      { platform: "Xiaohongshu", type: "RED post", count: 1 },
+      { platform: "Xiaohongshu", type: "Short video", count: 1, length: "30–60s" },
+    ],
+    // Targeting
+    targetKolCount: 15,
+    maxApplications: 80,
+    platforms: ["Xiaohongshu", "Instagram"],
+    kolTiers: ["Mid", "Macro"],
+    audience: {
+      ageRange: "18-34",
+      genderSplit: "85% F / 15% M",
+      interests: ["Fashion", "Beauty", "Lifestyle", "Travel"],
+      region: "CN",
+    },
+    // Schedule
+    applicationDeadline: "2026-11-20",
+    postStartDate: "2026-11-25",
+    postEndDate: "2026-12-24",
+    // Product
+    variants: [
+      {
+        id: "gift-edit",
+        label: "Holiday Gift Edit",
+        sku: "FX-GIFT-2026",
+        stockByStore: { cwb: 10, mk: 8, tst: 10, st: 6, tm: 5 },
+      },
+    ],
+    // Content requirements
+    mandatoryTags: ["#FXHolidayGifts"],
+    mandatoryMentions: ["@fxcreations"],
+    disclosureText: DISCLOSURE_TEXT,
+    // Money
+    feeModel: "gift",
+    feePerKol: 0,
+    commissionPct: 0,
+    totalBudget: 30000,
+    // Ops
+    storeIds: ["cwb", "mk", "tst"],
+    campaignCode: "HOL",
+    language: "zh-CN",
+    customQuestions: [
+      {
+        id: "q-gift-recipients",
+        question: "Who is the gift set for?",
+        required: false,
+      },
+    ],
   },
   {
     id: 5,
@@ -212,7 +415,60 @@ export const seedCampaigns: Campaign[] = [
       "Tag @fxcreations",
       "Use #AGSLife",
     ],
-    deliverables: ["3 Reels", "6 Stories"],
+    deliverables: [
+      { platform: "Instagram", type: "Reel", count: 3, length: "30–60s" },
+      { platform: "Instagram", type: "Story", count: 6 },
+    ],
+    // Targeting
+    targetKolCount: 8,
+    maxApplications: 40,
+    platforms: ["Instagram", "TikTok", "YouTube"],
+    kolTiers: ["Macro", "Mega"],
+    audience: {
+      ageRange: "22-38",
+      genderSplit: "55% F / 45% M",
+      interests: ["Fashion", "Tech", "Fitness", "Travel"],
+      region: "HK",
+    },
+    // Schedule
+    applicationDeadline: "2026-11-08",
+    postStartDate: "2026-11-01",
+    postEndDate: "2026-12-10",
+    // Product
+    variants: [
+      {
+        id: "ags-series",
+        label: "AGS Series (assorted colours)",
+        sku: "FX-AGS-SERIES",
+        stockByStore: { cwb: 5, mk: 5, tst: 5, st: 3, tm: 3 },
+      },
+    ],
+    // Content requirements
+    mandatoryTags: ["#AGSLife"],
+    mandatoryMentions: ["@fxcreations"],
+    disclosureText: DISCLOSURE_TEXT,
+    // Money
+    feeModel: "commission",
+    feePerKol: 0,
+    commissionPct: 10,
+    totalBudget: 18500,
+    // Ops
+    briefDocUrl: "https://drive.google.com/fx/q4-brand-awareness-brief",
+    storeIds: ["cwb", "mk", "tst", "st"],
+    campaignCode: "Q4B",
+    language: "en-HK",
+    customQuestions: [
+      {
+        id: "q-scenarios",
+        question: "Which 3 real-life scenarios do you plan to shoot?",
+        required: true,
+      },
+      {
+        id: "q-audience-fit",
+        question: "Which cities is your audience based in?",
+        required: false,
+      },
+    ],
   },
   {
     id: 6,
@@ -229,18 +485,72 @@ export const seedCampaigns: Campaign[] = [
     productName: "FX Creations Travel Pack",
     productUrl: "https://fxcreations.com/collections/travel",
     productImage: HERO_IMG_TRAVEL,
-    productDescription: "Compact travel essentials — packing cubes, sling, passport holder.",
+    productDescription:
+      "Compact travel essentials — packing cubes, sling, passport holder.",
     campaignBrief: "Pack a carry-on in 60 seconds using the FX Travel Pack.",
     requirements: [
       "1 TikTok (45–60s)",
       "Show full pack for a 4-day trip",
       "Use #FXTravelPack",
     ],
-    deliverables: ["1 TikTok", "1 carousel"],
+    deliverables: [
+      { platform: "TikTok", type: "TikTok", count: 1, length: "45–60s" },
+      { platform: "Instagram", type: "Carousel post", count: 1 },
+    ],
+    // Targeting
+    targetKolCount: 3,
+    maxApplications: 20,
+    platforms: ["TikTok"],
+    kolTiers: ["Micro", "Mid"],
+    audience: {
+      ageRange: "20-35",
+      genderSplit: "50% F / 50% M",
+      interests: ["Travel", "Outdoor", "Lifestyle"],
+      region: "TW",
+    },
+    // Schedule
+    applicationDeadline: "2026-11-10",
+    postStartDate: "2026-11-15",
+    postEndDate: "2026-12-15",
+    // Product
+    variants: [
+      {
+        id: "travel-pack",
+        label: "Travel Pack (cube set)",
+        sku: "FX-TRV-CUBE",
+        stockByStore: { cwb: 4, mk: 3, tst: 4, st: 2, tm: 2 },
+      },
+    ],
+    // Content requirements
+    mandatoryTags: ["#FXTravelPack"],
+    mandatoryMentions: ["@fxcreations"],
+    disclosureText: DISCLOSURE_TEXT,
+    // Money
+    feeModel: "gift",
+    feePerKol: 0,
+    commissionPct: 0,
+    totalBudget: 6000,
+    // Ops
+    storeIds: ["tst", "cwb"],
+    campaignCode: "TRV",
+    language: "zh-TW",
+    customQuestions: [
+      {
+        id: "q-trip-length",
+        question: "How long is the trip you will show?",
+        required: false,
+      },
+    ],
   },
 ];
 
-export const topKols: Kol[] = [
+/**
+ * Legacy alias — the campaigns list is now owned by `CampaignsContext`.
+ * Kept so existing imports keep working.
+ */
+export const campaigns = seedCampaigns;
+
+export const topKols: KolSummary[] = [
   {
     id: 1,
     name: "Elena H.",

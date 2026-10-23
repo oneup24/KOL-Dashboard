@@ -1,5 +1,5 @@
 import { Copy, ExternalLink, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { Campaign } from "@/types";
 
 interface ShareCampaignDialogProps {
@@ -18,6 +18,16 @@ const buildPublicUrl = (slug: string): string => {
 const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) => {
   const url = buildPublicUrl(campaign.slug);
   const [copied, setCopied] = useState<"url" | "text" | null>(null);
+  const uid = useId();
+
+  // Escape closes the dialog.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   const copy = async (text: string, key: "url" | "text") => {
     try {
@@ -37,14 +47,19 @@ const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) =>
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${uid}-title`}
         className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-800">Share campaign</h3>
+          <h3 id={`${uid}-title`} className="text-lg font-bold text-slate-800">
+            Share campaign
+          </h3>
           <button
             type="button"
-            aria-label="Close"
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100"
           >

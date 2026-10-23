@@ -1,21 +1,25 @@
-import { useMemo, useState } from "react";
-import { Inbox, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Inbox, MessageSquare, Search } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import ApplicationDetailPanel from "@/components/applications/ApplicationDetailPanel";
 import ApplicationRow from "@/components/applications/ApplicationRow";
-import ApplicationStatusBadge from "@/components/applications/ApplicationStatusBadge";
+import MessageTemplatesDialog from "@/components/applications/MessageTemplatesDialog";
 import PageHeader from "@/components/shared/PageHeader";
 import SectionCard from "@/components/shared/SectionCard";
 import { useApplications } from "@/context/ApplicationsContext";
 import { useCampaigns } from "@/context/CampaignsContext";
-import type { Application, ApplicationStatus, Campaign } from "@/types";
+import { useKol } from "@/context/KolContext";
+import type { Application, ApplicationStatus, Campaign, Kol } from "@/types";
 
 const statusFilters: ("All" | ApplicationStatus)[] = [
   "All",
   "New",
   "Reviewing",
+  "Approved",
   "Product Ready",
   "Picked Up",
   "Brief Sent",
+  "Content Live",
   "Completed",
   "Rejected",
 ];
@@ -23,11 +27,27 @@ const statusFilters: ("All" | ApplicationStatus)[] = [
 const ApplicationsPage = () => {
   const { applications } = useApplications();
   const { getById: getCampaignById } = useCampaigns();
+  const { kols } = useKol();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState<string>("");
   const [status, setStatus] = useState<"All" | ApplicationStatus>("All");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(
     applications[0]?.id ?? null,
   );
+
+  const urlSelectedId = searchParams.get("app");
+
+  useEffect(() => {
+    if (urlSelectedId) setSelectedId(urlSelectedId);
+  }, [urlSelectedId]);
+
+  // Contact details live on the CRM records — index them for search.
+  const kolById = useMemo(() => {
+    const map = new Map<number, Kol>();
+    for (const kol of kols) map.set(kol.id, kol);
+    return map;
+  }, [kols]);
 
   const filtered = useMemo<Application[]>(() => {
     const q = search.trim().toLowerCase();
@@ -36,19 +56,25 @@ const ApplicationsPage = () => {
       .filter((a) => {
         if (q.length === 0) return true;
         const c = getCampaignById(a.campaignId);
+        const kol = kolById.get(a.kolId);
         return (
-          a.kolName.toLowerCase().includes(q) ||
-          a.socialHandle.toLowerCase().includes(q) ||
-          a.email.toLowerCase().includes(q) ||
-          a.whatsapp.includes(q) ||
+          (kol?.name.toLowerCase().includes(q) ?? false) ||
+          (kol?.handle.toLowerCase().includes(q) ?? false) ||
+          (kol?.email.toLowerCase().includes(q) ?? false) ||
+          (kol?.whatsapp.includes(q) ?? false) ||
+          (kol?.niches.some((n) => n.toLowerCase().includes(q)) ?? false) ||
           (c?.name.toLowerCase().includes(q) ?? false)
         );
       });
-  }, [applications, search, status, getCampaignById]);
+  }, [applications, search, status, getCampaignById, kolById]);
 
   const selected: Application | null = useMemo(() => {
     if (!selectedId) return null;
-    return filtered.find((a) => a.id === selectedId) ?? applications.find((a) => a.id === selectedId) ?? null;
+    return (
+      filtered.find((a) => a.id === selectedId) ??
+      applications.find((a) => a.id === selectedId) ??
+      null
+    );
   }, [filtered, applications, selectedId]);
 
   const statusCounts = useMemo(() => {
@@ -62,11 +88,26 @@ const ApplicationsPage = () => {
 
   const findCampaign = (id: number): Campaign | undefined => getCampaignById(id);
 
+  const select = (id: string | null) => {
+    setSelectedId(id);
+    if (id) setSearchParams({ app: id }, { replace: true });
+    else setSearchParams({}, { replace: true });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Applications"
         description="Inbox of KOL applications from the public campaign pages."
+        actions={
+          <button
+            type="button"
+            onClick={() => setTemplatesOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50"
+          >
+            <MessageSquare size={16} /> Message templates
+          </button>
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-6">
@@ -82,11 +123,13 @@ const ApplicationsPage = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search KOLs, campaigns, emails..."
+                aria-label="Search applications by KOL, campaign, email or WhatsApp"
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-100 outline-none"
               />
             </div>
             <span className="text-xs text-slate-500 whitespace-nowrap">
-              {filtered.length} of {applications.length} application{applications.length === 1 ? "" : "s"}
+              {filtered.length} of {applications.length} application
+              {applications.length === 1 ? "" : "s"}
             </span>
           </div>
 
@@ -137,7 +180,7 @@ const ApplicationsPage = () => {
                       application={a}
                       campaignName={c?.name ?? "—"}
                       selected={selectedId === a.id}
-                      onSelect={() => setSelectedId(a.id)}
+                      onSelect={() => select(a.id)}
                     />
                   );
                 })}
@@ -148,9 +191,12 @@ const ApplicationsPage = () => {
 
         <div className="lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-6rem)]">
           {selected ? (
+            // Keyed by application id so the panel's local state (promo code,
+            // reject reason, active tab) never leaks into another application.
             <ApplicationDetailPanel
+              key={selected.id}
               application={selected}
-              onClose={() => setSelectedId(null)}
+              onClose={() => select(null)}
             />
           ) : (
             <SectionCard>
@@ -168,6 +214,8 @@ const ApplicationsPage = () => {
           )}
         </div>
       </div>
+
+      {templatesOpen ? <MessageTemplatesDialog onClose={() => setTemplatesOpen(false)} /> : null}
     </div>
   );
 };
@@ -175,8 +223,5 @@ const ApplicationsPage = () => {
 const Dot = () => (
   <span className="inline-block w-1.5 h-1.5 rounded-full bg-current opacity-70" />
 );
-
-// Suppress unused import lint: ApplicationStatusBadge re-exported for type parity
-void ApplicationStatusBadge;
 
 export default ApplicationsPage;
