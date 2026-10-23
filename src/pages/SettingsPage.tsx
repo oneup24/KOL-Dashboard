@@ -11,6 +11,9 @@ import {
   Settings2,
 } from "lucide-react";
 import { useSheets } from "@/context/SheetsContext";
+import { useApplications } from "@/context/ApplicationsContext";
+import { useCampaigns } from "@/context/CampaignsContext";
+import { useKol } from "@/context/KolContext";
 import PageHeader from "@/components/shared/PageHeader";
 import SectionCard from "@/components/shared/SectionCard";
 
@@ -65,11 +68,16 @@ const SettingsPage = () => {
     refresh,
     testConnection,
     triggerBuild,
+    pushAll,
   } = useSheets();
 
+  const { campaigns } = useCampaigns();
+  const { kols } = useKol();
+  const { applications, messageLog } = useApplications();
   const [urlDraft, setUrlDraft] = useState(url);
   const [hookDraft, setHookDraft] = useState(buildHookUrl);
   const [saved, setSaved] = useState(false);
+  const [confirmSeeding, setConfirmSeeding] = useState(false);
 
   const meta = statusMeta[status] ?? statusMeta.idle;
   const StatusIcon = meta.icon;
@@ -135,9 +143,39 @@ const SettingsPage = () => {
                   type="button"
                   onClick={() => void refresh()}
                   disabled={!url.trim() || status === "loading"}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <RefreshCw size={14} /> Reload from sheet
+                </button>
+              </div>
+
+              <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                <p className="text-sm font-medium text-slate-800">Start from the current data</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  A new sheet starts empty while the dashboard shows the demo records. Push
+                  everything once to make the sheet match what you see, then edit either side —
+                  changes flow both ways from then on.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!confirmSeeding) {
+                      setConfirmSeeding(true);
+                      return;
+                    }
+                    pushAll("campaigns", campaigns);
+                    pushAll("kols", kols);
+                    pushAll("applications", applications);
+                    pushAll("messageLog", messageLog);
+                    setConfirmSeeding(false);
+                  }}
+                  disabled={!url.trim()}
+                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <CloudUpload size={14} />
+                  {confirmSeeding
+                    ? "Click again to confirm"
+                    : "Push everything to the sheet"}
                 </button>
               </div>
 

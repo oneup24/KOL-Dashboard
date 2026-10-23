@@ -99,7 +99,12 @@ const ReportsPage = () => {
               onPushToSheet={() => pushAll("campaigns", campaigns)}
               pushLabel="Push campaigns to sheet"
             />
-            <ExportMenu rows={kolRows} filename="kol-database" />
+            <ExportMenu
+              rows={kolRows}
+              filename="kol-database"
+              onPushToSheet={() => pushAll("kols", kols)}
+              pushLabel="Push KOLs to sheet"
+            />
           </>
         }
       />
