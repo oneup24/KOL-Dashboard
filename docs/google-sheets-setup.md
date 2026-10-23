@@ -111,6 +111,49 @@ does not show a rich preview.
 
 ---
 
+## Campaign settings the owner controls
+
+Two campaign settings are deliberately yours to decide rather than the app's:
+
+### Promo code
+
+Set in **Campaign → Money → Promo code**. The **Code pattern** field decides the code:
+
+| Pattern | Result |
+|---|---|
+| `FX-{campaign}-{kol}` | a unique code per KOL — `FX-AGS-042`. Use this for attribution and to spot a KOL sharing their code |
+| `FXSUMMER20` | one shared code for every KOL in the campaign |
+| *(empty)* | no promo code for this campaign |
+
+`{campaign}` becomes the campaign code, `{kol}` the KOL id. The form shows a live preview of
+what the code will look like.
+
+**What the code is worth** (e.g. `15% off for your audience`) is also yours — it is what the
+KOL is told to put in their caption. Left blank, it falls back to the commission percentage.
+
+The code is issued to a KOL when you approve their application, and the promo code template is
+stored per campaign, so two campaigns never collide.
+
+### Fee details
+
+**Campaign → Money → Fee model** picks the commercial model: `Gift (special)`, `Money (flat fee)`,
+`Commission`, or `Money + commission`.
+
+But the **Show the fee details to KOLs** toggle is the important one:
+
+- **Off** — nothing about fees, commission or payment appears anywhere on the public campaign
+  page. The fee values stay internal, for your own reporting.
+- **On** — a "What you will earn" card appears on the public page, showing **What KOLs will see**
+  (your own wording, e.g. *"10% commission on every sale made with your code, paid monthly."*),
+  and the same wording is included in the brief message sent to approved KOLs.
+
+> **Why the toggle exists.** A campaign with no cash involved should read as pure gifting. If the
+> page said "Fee model: Gift", a KOL would reasonably wonder whether they could ask for money
+> instead. Leaving the toggle off removes the question entirely. Turn it on only when there is a
+> real fee to advertise.
+
+---
+
 ## Troubleshooting
 
 **"Could not reach the web app"**

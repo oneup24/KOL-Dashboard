@@ -64,6 +64,9 @@ const SCHEMA = {
       "progress", "kols",
       "productName", "productUrl", "productImage", "productDescription",
       "campaignBrief", "disclosureText", "briefDocUrl", "language",
+      "feeModel", "feePerKol", "commissionPct", "totalBudget",
+      "feeDisplayEnabled", "feeDisplayText",
+      "promoCodeTemplate", "promoCodeValue",
       "updatedAt",
     ],
     json: [

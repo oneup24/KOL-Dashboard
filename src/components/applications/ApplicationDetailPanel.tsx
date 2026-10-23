@@ -376,6 +376,27 @@ const ApplicationDetailPanel = ({ application, onClose }: ApplicationDetailPanel
                     Discount offered to the audience: {live.discountValue}
                   </p>
                 ) : null}
+                {campaign ? (
+                  <p className="mt-2 text-xs text-slate-500">
+                    {campaign.feeDisplayEnabled ? (
+                      <>
+                        Shown to KOLs:{" "}
+                        <span className="text-slate-700">
+                          {campaign.feeDisplayText?.trim() ||
+                            (campaign.feeModel === "flat"
+                              ? `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} per KOL`
+                              : campaign.feeModel === "commission"
+                                ? `${campaign.commissionPct}% commission per sale`
+                                : campaign.feeModel === "flat_commission"
+                                  ? `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} plus ${campaign.commissionPct}% commission`
+                                  : "A special gift for every selected KOL")}
+                        </span>
+                      </>
+                    ) : (
+                      "Fee details are hidden from KOLs on this campaign."
+                    )}
+                  </p>
+                ) : null}
               </Section>
             ) : null}
 

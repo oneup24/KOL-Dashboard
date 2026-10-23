@@ -3,6 +3,11 @@ description: React + Tailwind builder for KOL-Dashboard — creates and edits pa
 mode: subagent
 color: "#7C3AED"
 permission:
+  edit:
+    "*": allow
+    "**/.kilo": deny
+    "**/.kilo/*": deny
+    "**/.kilo/**": deny
   bash:
     "*": deny
     "npm run lint*": allow

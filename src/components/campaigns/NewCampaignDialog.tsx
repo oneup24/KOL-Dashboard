@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { useCampaigns } from "@/context/CampaignsContext";
 import { stores } from "@/data/stores";
+import {
+  DEFAULT_PROMO_CODE_TEMPLATE,
+  PROMO_CODE_TOKENS,
+} from "@/data/promoCode";
 import type {
   Campaign,
   CampaignAudience,
@@ -45,11 +49,23 @@ const statusOptions: CampaignStatus[] = ["Active", "Planning", "Completed", "Dra
 const platformOptions: Platform[] = ["Instagram", "TikTok", "Xiaohongshu", "YouTube"];
 const tierOptions: KolTier[] = ["Nano", "Micro", "Mid", "Macro", "Mega"];
 const feeModelOptions: { value: CampaignFeeModel; label: string }[] = [
-  { value: "gift", label: "Gift only" },
-  { value: "flat", label: "Flat fee per KOL" },
-  { value: "commission", label: "Commission only" },
-  { value: "flat_commission", label: "Flat fee + commission" },
+  { value: "gift", label: "Gift (special)" },
+  { value: "flat", label: "Money (flat fee)" },
+  { value: "commission", label: "Commission" },
+  { value: "flat_commission", label: "Money + commission" },
 ];
+
+/** Human label for a fee model, used in the helper copy. */
+const feeModelLabel = (model: CampaignFeeModel): string =>
+  feeModelOptions.find((f) => f.value === model)?.label ?? model;
+
+/** Renders the promo template with placeholder values for the live preview. */
+const previewPromoCode = (template: string): string =>
+  template
+    .trim()
+    .replace(/\{campaign\}/g, "AGS")
+    .replace(/\{kol\}/g, "042")
+    .toUpperCase();
 
 type TabId = "basics" | "product" | "schedule" | "targeting" | "requirements" | "money";
 
@@ -98,6 +114,10 @@ interface FormState {
   feePerKol: string;
   commissionPct: string;
   totalBudget: string;
+  feeDisplayEnabled: boolean;
+  feeDisplayText: string;
+  promoCodeTemplate: string;
+  promoCodeValue: string;
 }
 
 const blank: FormState = {
@@ -136,6 +156,10 @@ const blank: FormState = {
   feePerKol: "0",
   commissionPct: "0",
   totalBudget: "0",
+  feeDisplayEnabled: false,
+  feeDisplayText: "",
+  promoCodeTemplate: DEFAULT_PROMO_CODE_TEMPLATE,
+  promoCodeValue: "",
 };
 
 const toForm = (c: Campaign): FormState => ({
@@ -174,6 +198,10 @@ const toForm = (c: Campaign): FormState => ({
   feePerKol: String(c.feePerKol),
   commissionPct: String(c.commissionPct),
   totalBudget: String(c.totalBudget),
+  feeDisplayEnabled: c.feeDisplayEnabled ?? false,
+  feeDisplayText: c.feeDisplayText ?? "",
+  promoCodeTemplate: c.promoCodeTemplate ?? DEFAULT_PROMO_CODE_TEMPLATE,
+  promoCodeValue: c.promoCodeValue ?? "",
 });
 
 /** The exact shape written to the campaigns context. */
@@ -208,6 +236,10 @@ interface CampaignFields {
   feePerKol: number;
   commissionPct: number;
   totalBudget: number;
+  feeDisplayEnabled: boolean;
+  feeDisplayText: string;
+  promoCodeTemplate: string;
+  promoCodeValue: string;
   briefDocUrl?: string;
   storeIds: string[];
   campaignCode: string;
@@ -323,6 +355,10 @@ const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
     feePerKol: toNumber(form.feePerKol),
     commissionPct: toNumber(form.commissionPct),
     totalBudget: toNumber(form.totalBudget),
+    feeDisplayEnabled: form.feeDisplayEnabled,
+    feeDisplayText: form.feeDisplayText,
+    promoCodeTemplate: form.promoCodeTemplate,
+    promoCodeValue: form.promoCodeValue,
     briefDocUrl: form.briefDocUrl.trim() || undefined,
     storeIds: form.storeIds,
     campaignCode: form.campaignCode.trim().toUpperCase(),
@@ -1034,12 +1070,34 @@ const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
           ) : null}
 
           {tab === "money" ? (
+            <>
             <Section title="Money">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id={`${uid}-fee-display`}
+                    checked={form.feeDisplayEnabled}
+                    onChange={(e) => update("feeDisplayEnabled", e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-800">
+                      Show the fee details to KOLs
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      Leave this off for a campaign with no cash involved. Showing{" "}
+                      “{feeModelLabel(form.feeModel)}” makes a KOL wonder whether they can ask for
+                      money. Turn it on only when there is a real fee to advertise — a commission,
+                      a flat fee, or a special gift.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <div>
-                  <Label required htmlFor={`${uid}-fee-model`}>
-                    Fee model
-                  </Label>
+                  <Label htmlFor={`${uid}-fee-model`}>Fee model</Label>
                   <select
                     id={`${uid}-fee-model`}
                     value={form.feeModel}
@@ -1074,11 +1132,81 @@ const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
                   onChange={(v) => update("totalBudget", v)}
                 />
               </div>
-              <p className="mt-3 text-xs text-slate-500">
-                Commission-based campaigns show the percentage to the KOL as their referral
-                discount.
-              </p>
+
+              {form.feeDisplayEnabled ? (
+                <div className="mt-4">
+                  <Field
+                    label="What KOLs will see"
+                    value={form.feeDisplayText}
+                    onChange={(v) => update("feeDisplayText", v)}
+                    placeholder="e.g. 10% commission on every sale made with your code, paid monthly."
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    This wording appears on the public campaign page and in the message sent to
+                    approved KOLs.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-slate-500">
+                  Nothing about fees or commission appears on the public campaign page. The values
+                  above stay internal — used for your own reporting.
+                </p>
+              )}
             </Section>
+
+            <Section title="Promo code">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Code pattern"
+                  value={form.promoCodeTemplate}
+                  onChange={(v) => update("promoCodeTemplate", v)}
+                  placeholder="FX-{campaign}-{kol}"
+                />
+                <Field
+                  label="What the code is worth"
+                  value={form.promoCodeValue}
+                  onChange={(v) => update("promoCodeValue", v)}
+                  placeholder="e.g. 15% off for your audience"
+                />
+              </div>
+              <div className="mt-3 rounded-lg bg-slate-50 border border-slate-100 p-3">
+                <p className="text-xs text-slate-600">
+                  The code is issued to each KOL when you approve their application. Use{" "}
+                  <code className="font-mono bg-white border border-slate-200 px-1 rounded">
+                    {"{kol}"}
+                  </code>{" "}
+                  for a unique code per KOL
+                  {form.promoCodeTemplate.includes("{kol}") ? (
+                    <>
+                      {" "}
+                      — currently{" "}
+                      <span className="font-mono">{previewPromoCode(form.promoCodeTemplate)}</span>.
+                    </>
+                  ) : form.promoCodeTemplate.trim() ? (
+                    <>
+                      {" "}
+                      — currently one shared code{" "}
+                      <span className="font-mono">{form.promoCodeTemplate.trim()}</span> for every
+                      KOL in this campaign.
+                    </>
+                  ) : (
+                    <> — currently no promo code for this campaign.</>
+                  )}
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Placeholders:{" "}
+                  {PROMO_CODE_TOKENS.map((t) => (
+                    <span key={t.token} className="mr-3 inline-block">
+                      <code className="font-mono bg-white border border-slate-200 px-1 rounded">
+                        {t.token}
+                      </code>{" "}
+                      {t.label}
+                    </span>
+                  ))}
+                </p>
+              </div>
+            </Section>
+            </>
           ) : null}
 
           {error ? (

@@ -184,6 +184,26 @@ export interface Campaign {
   feePerKol: number;
   commissionPct: number;
   totalBudget: number;
+  /**
+   * Whether the fee details are shown to KOLs on the public campaign page.
+   *
+   * A campaign with no cash involved should leave this off: showing "Gift"
+   * makes a KOL wonder whether they can ask for money. Turn it on when there
+   * is a real fee to advertise — commission, a flat fee, or a special gift.
+   */
+  feeDisplayEnabled: boolean;
+  /** The wording shown to KOLs. Only used when feeDisplayEnabled is true. */
+  feeDisplayText: string;
+  // Promo code — configured by the campaign owner
+  /**
+   * The promo code pattern for this campaign. The owner sets it.
+   *   "FX-{campaign}-{kol}"  -> a unique code per KOL, e.g. FX-AGS-042
+   *   "FXSUMMER20"           -> one shared code for every KOL in the campaign
+   *   ""                     -> no promo code for this campaign
+   */
+  promoCodeTemplate: string;
+  /** What the code is worth, e.g. "15% off" or "$50 off". Shown to approved KOLs. */
+  promoCodeValue: string;
   // Ops
   briefDocUrl?: string;
   storeIds: string[];

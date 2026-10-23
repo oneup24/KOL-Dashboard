@@ -12,7 +12,12 @@ import { useCampaigns } from "@/context/CampaignsContext";
 import { useKol } from "@/context/KolContext";
 import { useSheets } from "@/context/SheetsContext";
 import { isPastDeadline } from "@/components/shared/workflow";
-import { buildPromoCode, discountForCampaign, randomPromoSuffix } from "@/data/promoCode";
+import {
+  buildPromoCode,
+  isPerKolTemplate,
+  promoValueForCampaign,
+  randomPromoSuffix,
+} from "@/data/promoCode";
 import { seedApplications } from "@/data/seedApplications";
 import { normaliseHandle } from "@/data/seedKols";
 import type {
@@ -325,15 +330,19 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
       );
 
       const base = buildPromoCode(campaign, kol);
+      // A template with {kol} is meant to be unique per KOL, so a clash gets
+      // a suffix. A shared template (no {kol}) is the same code for every KOL
+      // in the campaign by design — suffixing it would break that.
+      const perKol = isPerKolTemplate(campaign.promoCodeTemplate ?? "");
       let code = base;
-      if (used.has(code)) {
+      if (perKol && used.has(code)) {
         do {
           code = `${base}-${randomPromoSuffix()}`;
         } while (used.has(code));
       }
 
       if (target) {
-        const discount = discountForCampaign(campaign);
+        const discount = promoValueForCampaign(campaign);
         const updatedAt = new Date().toISOString();
         setApplications((prev) =>
           prev.map((a) =>

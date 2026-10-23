@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { seedCampaigns } from "@/data/mockData";
+import { DEFAULT_PROMO_CODE_TEMPLATE } from "@/data/promoCode";
 import { useSheets } from "@/context/SheetsContext";
 import type {
   Campaign,
@@ -61,6 +62,10 @@ export interface NewCampaignInput {
   feePerKol?: number;
   commissionPct?: number;
   totalBudget?: number;
+  feeDisplayEnabled?: boolean;
+  feeDisplayText?: string;
+  promoCodeTemplate?: string;
+  promoCodeValue?: string;
   // Ops
   briefDocUrl?: string;
   storeIds?: string[];
@@ -196,6 +201,14 @@ export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
         feePerKol: input.feePerKol ?? 0,
         commissionPct: input.commissionPct ?? 0,
         totalBudget: input.totalBudget ?? 0,
+        // Fee visibility — off by default so a gifting campaign never makes a
+        // KOL wonder whether cash is on the table.
+        feeDisplayEnabled: input.feeDisplayEnabled ?? false,
+        feeDisplayText: input.feeDisplayText?.trim() ?? "",
+        // Promo code — set by the campaign owner
+        promoCodeTemplate:
+          input.promoCodeTemplate ?? DEFAULT_PROMO_CODE_TEMPLATE,
+        promoCodeValue: input.promoCodeValue?.trim() ?? "",
         // Ops
         briefDocUrl: input.briefDocUrl?.trim() || undefined,
         storeIds: input.storeIds ?? [],

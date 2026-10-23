@@ -109,7 +109,11 @@
         "required": false
       }
     ],
-    "updatedAt": "2026-10-01T00:00:00Z"
+    "updatedAt": "2026-10-24T00:00:00Z",
+    "promoCodeTemplate": "FX-{campaign}-{kol}",
+    "promoCodeValue": "15% off for your audience",
+    "feeDisplayEnabled": false,
+    "feeDisplayText": ""
   },
   {
     "id": 2,
@@ -211,7 +215,11 @@
         "required": true
       }
     ],
-    "updatedAt": "2026-10-01T00:00:00Z"
+    "updatedAt": "2026-10-24T00:00:00Z",
+    "promoCodeTemplate": "FX-{campaign}-{kol}",
+    "promoCodeValue": "HK$100 off for your audience",
+    "feeDisplayEnabled": true,
+    "feeDisplayText": "HK$800 flat fee, paid on the day your video goes live."
   },
   {
     "id": 3,
@@ -315,7 +323,11 @@
         "required": false
       }
     ],
-    "updatedAt": "2026-10-01T00:00:00Z"
+    "updatedAt": "2026-10-24T00:00:00Z",
+    "promoCodeTemplate": "BTS20",
+    "promoCodeValue": "20% off for your audience",
+    "feeDisplayEnabled": false,
+    "feeDisplayText": ""
   },
   {
     "id": 4,
@@ -415,7 +427,11 @@
         "required": false
       }
     ],
-    "updatedAt": "2026-10-01T00:00:00Z"
+    "updatedAt": "2026-10-24T00:00:00Z",
+    "promoCodeTemplate": "FX-{campaign}-{kol}",
+    "promoCodeValue": "10% off for your audience",
+    "feeDisplayEnabled": false,
+    "feeDisplayText": ""
   },
   {
     "id": 5,
@@ -523,7 +539,11 @@
         "required": false
       }
     ],
-    "updatedAt": "2026-10-01T00:00:00Z"
+    "updatedAt": "2026-10-24T00:00:00Z",
+    "promoCodeTemplate": "FX-{campaign}-{kol}",
+    "promoCodeValue": "10% commission on every sale",
+    "feeDisplayEnabled": true,
+    "feeDisplayText": "10% commission on every sale made with your code, paid monthly."
   },
   {
     "id": 6,
@@ -620,6 +640,10 @@
         "required": false
       }
     ],
-    "updatedAt": "2026-10-01T00:00:00Z"
+    "updatedAt": "2026-10-24T00:00:00Z",
+    "promoCodeTemplate": "FX-{campaign}-{kol}",
+    "promoCodeValue": "HK$50 off for your audience",
+    "feeDisplayEnabled": false,
+    "feeDisplayText": ""
   }
 ]

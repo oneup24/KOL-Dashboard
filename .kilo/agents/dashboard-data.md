@@ -3,6 +3,11 @@ description: Domain model and state owner for KOL-Dashboard — owns src/types, 
 mode: subagent
 color: "#059669"
 permission:
+  edit:
+    "*": allow
+    "**/.kilo": deny
+    "**/.kilo/*": deny
+    "**/.kilo/**": deny
   bash:
     "*": deny
     "npm run lint*": allow

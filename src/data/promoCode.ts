@@ -1,24 +1,29 @@
 import type { Campaign, Kol } from "@/types";
 
 /**
- * Promo code contract — swap the format in ONE place.
+ * Promo codes are configured per campaign — the campaign owner decides the
+ * pattern in the campaign settings, so there is no single house format.
  *
- *   {prefix}   -> PROMO_CODE_PREFIX
- *   {campaign} -> campaign code, e.g. "AGS"
- *   {kol}      -> zero-padded KOL id, e.g. "042"
+ *   {campaign} -> the campaign code, e.g. "AGS"
+ *   {kol}      -> the zero-padded KOL id, e.g. "042"
  *
- * Result: FX-AGS-042
+ * A template containing {kol} produces a unique code per KOL (FX-AGS-042),
+ * which is what you want for attribution. A template without it produces one
+ * shared code for the whole campaign (FXSUMMER20). An empty template means
+ * the campaign has no promo code at all.
  */
-export const PROMO_CODE_PREFIX = "FX";
-export const PROMO_CODE_FORMAT = "{prefix}-{campaign}-{kol}";
+export const DEFAULT_PROMO_CODE_TEMPLATE = "FX-{campaign}-{kol}";
 
 /** Alphabet used for the collision-breaking suffix (e.g. FX-AGS-042-X7). */
 export const PROMO_CODE_SUFFIX_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-/** Example of a rendered code — used by the UI as a format hint. */
-export const PROMO_CODE_EXAMPLE = "FX-AGS-042";
-
 const KOL_ID_PAD = 3;
+
+/** Placeholder tokens the owner can use in the template. */
+export const PROMO_CODE_TOKENS = [
+  { token: "{campaign}", label: "Campaign code", example: "AGS" },
+  { token: "{kol}", label: "KOL id", example: "042" },
+];
 
 export const campaignCodePart = (
   campaign: Pick<Campaign, "campaignCode" | "name">,
@@ -35,16 +40,41 @@ export const campaignCodePart = (
 export const kolCodePart = (kolId: number): string =>
   String(kolId).padStart(KOL_ID_PAD, "0");
 
-export const formatPromoCode = (campaignPart: string, kolPart: string): string =>
-  PROMO_CODE_FORMAT.replace("{prefix}", PROMO_CODE_PREFIX)
-    .replace("{campaign}", campaignPart)
-    .replace("{kol}", kolPart);
+/** True when the template produces a different code for each KOL. */
+export const isPerKolTemplate = (template: string): boolean =>
+  template.includes("{kol}");
+
+/** Renders the template for a campaign + KOL pair. */
+export const formatPromoCode = (
+  template: string,
+  campaignPart: string,
+  kolPart: string,
+): string =>
+  template
+    .trim()
+    .replace(/\{campaign\}/g, campaignPart)
+    .replace(/\{kol\}/g, kolPart)
+    .replace(/\s+/g, "")
+    .toUpperCase();
 
 /** Builds the canonical (uncollided) promo code for a campaign + KOL pair. */
 export const buildPromoCode = (
-  campaign: Pick<Campaign, "campaignCode" | "name">,
+  campaign: Pick<Campaign, "campaignCode" | "name" | "promoCodeTemplate">,
   kol: Pick<Kol, "id">,
-): string => formatPromoCode(campaignCodePart(campaign), kolCodePart(kol.id));
+): string => {
+  // An undefined template means the campaign predates the setting — fall back
+  // to the house default. An explicitly empty template means "no promo code".
+  const template =
+    campaign.promoCodeTemplate === undefined
+      ? DEFAULT_PROMO_CODE_TEMPLATE
+      : campaign.promoCodeTemplate;
+  if (!template.trim()) return "";
+  return formatPromoCode(
+    template,
+    campaignCodePart(campaign),
+    kolCodePart(kol.id),
+  );
+};
 
 /** Random 2-char suffix (A-Z0-9) used to break promo code collisions. */
 export const randomPromoSuffix = (length = 2): string => {
@@ -57,9 +87,8 @@ export const randomPromoSuffix = (length = 2): string => {
 };
 
 /**
- * Parses a promo code back into its parts.
- * Accepts the canonical `FX-AGS-042` form and the collision-suffixed
- * `FX-AGS-042-X7` form.
+ * Parses a promo code back into its parts. Only the canonical per-KOL form
+ * can be parsed — a shared campaign code carries no KOL id.
  */
 export const parsePromoCode = (
   code: string,
@@ -81,10 +110,12 @@ export const parsePromoCode = (
 };
 
 /**
- * Discount shown on the application for a given campaign.
- * Attribution-only campaigns (no commission) get `undefined`.
+ * What the promo code is worth, as written by the campaign owner.
+ * Falls back to the commission percentage when the owner left it blank.
  */
-export const discountForCampaign = (campaign: Campaign): string | undefined => {
+export const promoValueForCampaign = (campaign: Campaign): string | undefined => {
+  const explicit = campaign.promoCodeValue?.trim();
+  if (explicit) return explicit;
   if (campaign.commissionPct > 0) return `${campaign.commissionPct}%`;
   return undefined;
 };

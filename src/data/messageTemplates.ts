@@ -83,6 +83,7 @@ Full brief: {{brief_url}}
 
 Your promo code: {{promo_code}}
 Discount offered to your audience: {{discount}}
+{{fee}}
 
 When your post is live, please reply here with the link so we can track it. Thank you! 🙏`,
   },
@@ -147,6 +148,7 @@ export const MESSAGE_VARIABLES: { key: string; label: string; group: string }[] 
   { key: "variant", label: "Product variant", group: "Product" },
   { key: "promo_code", label: "Promo code", group: "Product" },
   { key: "discount", label: "Discount value", group: "Product" },
+  { key: "fee", label: "Fee / commission wording", group: "Product" },
   { key: "store_name", label: "Store name", group: "Store" },
   { key: "store_address", label: "Store address", group: "Store" },
   { key: "store_hours", label: "Store opening hours", group: "Store" },
@@ -165,10 +167,44 @@ export const MESSAGE_VARIABLES: { key: string; label: string; group: string }[] 
 export const renderTemplate = (
   template: string,
   vars: Record<string, string>,
-): string =>
-  template.replace(/\{\{(\w+)\}\}/g, (match, key: string) =>
+): string => {
+  const rendered = template.replace(/\{\{(\w+)\}\}/g, (match, key: string) =>
     Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] ?? match : match,
   );
+
+  // A line that held nothing but a placeholder and resolved to an empty
+  // string is noise in a message the marketer is about to send — drop it.
+  const sourceLines = template.split("\n");
+  return rendered
+    .split("\n")
+    .filter((line, index) => {
+      const original = (sourceLines[index] ?? "").trim();
+      const onlyPlaceholder = /^\{\{\w+\}\}$/.test(original);
+      return !(onlyPlaceholder && line.trim() === "");
+    })
+    .join("\n");
+};
+
+/**
+ * The fee wording shown to a KOL. Respects the campaign owner's "show the fee
+ * details" toggle — when it is off there is nothing to say, and saying
+ * "gift" invites a KOL to ask for money.
+ */
+const feeText = (campaign?: Campaign): string => {
+  if (!campaign || !campaign.feeDisplayEnabled) return "";
+  const explicit = campaign.feeDisplayText?.trim();
+  if (explicit) return explicit;
+  if (campaign.feeModel === "flat") {
+    return `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} per KOL`;
+  }
+  if (campaign.feeModel === "commission") {
+    return `${campaign.commissionPct}% commission per sale`;
+  }
+  if (campaign.feeModel === "flat_commission") {
+    return `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} plus ${campaign.commissionPct}% commission`;
+  }
+  return "A special gift for every selected KOL";
+};
 
 export interface MessageVarsInput {
   application: Application;
@@ -221,6 +257,7 @@ export const buildMessageVars = ({
     variant: variant?.label ?? "",
     promo_code: application.promoCode ?? "",
     discount: application.discountValue ?? "",
+    fee: feeText(campaign),
     store_name: resolvedStore?.name ?? "",
     store_address: resolvedStore?.address ?? "",
     store_hours: resolvedStore?.hours ?? "",

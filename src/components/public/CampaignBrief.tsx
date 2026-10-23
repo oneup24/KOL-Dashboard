@@ -100,17 +100,26 @@ const CampaignBrief = ({ campaign }: CampaignBriefProps) => (
           </li>
         </ul>
 
-        {campaign.feeModel !== "gift" ? (
+        {/*
+         The fee block is gated on the campaign owner's "show the fee details"
+         toggle. A campaign with no cash involved must not mention a fee at
+         all — showing "Gift" makes a KOL wonder whether they can ask for
+         money.
+        */}
+        {campaign.feeDisplayEnabled ? (
           <div className="mt-6 pt-6 border-t border-slate-200">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Fee model
+              What you will earn
             </p>
             <p className="mt-1 text-sm text-slate-700">
-              {campaign.feeModel === "flat"
-                ? `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} per KOL`
-                : campaign.feeModel === "commission"
-                  ? `${campaign.commissionPct}% commission per sale`
-                  : `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} plus ${campaign.commissionPct}% commission`}
+              {campaign.feeDisplayText?.trim() ||
+                (campaign.feeModel === "flat"
+                  ? `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} per KOL`
+                  : campaign.feeModel === "commission"
+                    ? `${campaign.commissionPct}% commission per sale`
+                    : campaign.feeModel === "flat_commission"
+                      ? `Flat fee of $${campaign.feePerKol.toLocaleString("en-US")} plus ${campaign.commissionPct}% commission`
+                      : "A special gift for every selected KOL")}
             </p>
           </div>
         ) : null}
