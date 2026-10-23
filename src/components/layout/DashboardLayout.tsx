@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import PageContainer from "@/components/layout/PageContainer";
 import Sidebar from "@/components/layout/Sidebar";
-import { navItems } from "@/data/mockData";
+import { navItems } from "@/data/dashboardMeta";
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState<boolean>(true);

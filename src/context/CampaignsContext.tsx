@@ -2,11 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { seedCampaigns } from "@/data/mockData";
+import { useSheets } from "@/context/SheetsContext";
 import type {
   Campaign,
   CampaignAudience,
@@ -130,6 +133,17 @@ const toDeliverables = (
 
 export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>(seedCampaigns);
+  const { snapshot, push, remove: removeRemote, triggerBuild } = useSheets();
+  const hydrated = useRef(false);
+
+  // Seed from the sheet once, the first time a snapshot arrives. Later
+  // refreshes do not clobber local edits — the sheet is the write target,
+  // not a live read loop.
+  useEffect(() => {
+    if (hydrated.current || !snapshot) return;
+    if (snapshot.campaigns.length > 0) setCampaigns(snapshot.campaigns);
+    hydrated.current = true;
+  }, [snapshot]);
 
   const addCampaign = useCallback(
     (input: NewCampaignInput): Campaign => {
@@ -191,41 +205,62 @@ export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
         ),
         language: input.language ?? DEFAULT_LANGUAGE,
         customQuestions: input.customQuestions ?? [],
+        updatedAt: new Date().toISOString(),
       };
       setCampaigns((prev) => [created, ...prev]);
+      push("campaigns", created);
+      // A new campaign needs its own static link-preview page — the build
+      // hook regenerates those.
+      triggerBuild();
       return created;
     },
-    [campaigns],
+    [campaigns, push, triggerBuild],
   );
 
-  const updateCampaign = useCallback((id: number, partial: Partial<Campaign>) => {
-    setCampaigns((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c;
-        const next = { ...c, ...partial };
-        // Re-slug if name changed (preserves URL continuity for old slugs in
-        // the wild — only when name actually changed)
-        if (partial.name && partial.name !== c.name) {
-          const base = slugify(partial.name);
-          if (base) next.slug = uniqueSlug(base, prev.filter((x) => x.id !== id));
-        }
-        // The campaign code feeds the promo codes, so it has to stay unique
-        // across campaigns — the campaign being edited is excluded from the
-        // check (same rule as `addCampaign`).
-        if (typeof partial.campaignCode === "string") {
-          const base = partial.campaignCode.trim().toUpperCase();
-          next.campaignCode = base
-            ? uniqueCampaignCode(base, prev.filter((x) => x.id !== id))
-            : c.campaignCode;
-        }
-        return next;
-      }),
-    );
-  }, []);
+  const updateCampaign = useCallback(
+    (id: number, partial: Partial<Campaign>) => {
+      setCampaigns((prev) =>
+        prev.map((c) => {
+          if (c.id !== id) return c;
+          const next = { ...c, ...partial };
+          // Re-slug if name changed (preserves URL continuity for old slugs in
+          // the wild — only when name actually changed)
+          if (partial.name && partial.name !== c.name) {
+            const base = slugify(partial.name);
+            if (base) next.slug = uniqueSlug(base, prev.filter((x) => x.id !== id));
+          }
+          // The campaign code feeds the promo codes, so it has to stay unique
+          // across campaigns — the campaign being edited is excluded from the
+          // check (same rule as `addCampaign`).
+          if (typeof partial.campaignCode === "string") {
+            const base = partial.campaignCode.trim().toUpperCase();
+            next.campaignCode = base
+              ? uniqueCampaignCode(base, prev.filter((x) => x.id !== id))
+              : c.campaignCode;
+          }
+          next.updatedAt = new Date().toISOString();
+          return next;
+        }),
+      );
+      const current = campaigns.find((c) => c.id === id);
+      if (current) {
+        push("campaigns", {
+          ...current,
+          ...partial,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    },
+    [campaigns, push],
+  );
 
-  const deleteCampaign = useCallback((id: number) => {
-    setCampaigns((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+  const deleteCampaign = useCallback(
+    (id: number) => {
+      setCampaigns((prev) => prev.filter((c) => c.id !== id));
+      removeRemote("campaigns", id);
+    },
+    [removeRemote],
+  );
 
   const duplicateCampaign = useCallback(
     (id: number): Campaign | null => {
@@ -243,11 +278,14 @@ export const CampaignsProvider = ({ children }: { children: ReactNode }) => {
         progress: 0,
         kols: 0,
         campaignCode: uniqueCampaignCode(deriveCampaignCode(copyName), campaigns),
+        updatedAt: new Date().toISOString(),
       };
       setCampaigns((prev) => [dup, ...prev]);
+      push("campaigns", dup);
+      triggerBuild();
       return dup;
     },
-    [campaigns],
+    [campaigns, push, triggerBuild],
   );
 
   const getById = useCallback(

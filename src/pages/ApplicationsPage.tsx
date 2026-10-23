@@ -4,11 +4,15 @@ import { useSearchParams } from "react-router-dom";
 import ApplicationDetailPanel from "@/components/applications/ApplicationDetailPanel";
 import ApplicationRow from "@/components/applications/ApplicationRow";
 import MessageTemplatesDialog from "@/components/applications/MessageTemplatesDialog";
+import ExportMenu from "@/components/shared/ExportMenu";
 import PageHeader from "@/components/shared/PageHeader";
 import SectionCard from "@/components/shared/SectionCard";
 import { useApplications } from "@/context/ApplicationsContext";
 import { useCampaigns } from "@/context/CampaignsContext";
 import { useKol } from "@/context/KolContext";
+import { useSheets } from "@/context/SheetsContext";
+import { findStore } from "@/data/stores";
+import type { ExportRow } from "@/utils/export";
 import type { Application, ApplicationStatus, Campaign, Kol } from "@/types";
 
 const statusFilters: ("All" | ApplicationStatus)[] = [
@@ -28,6 +32,7 @@ const ApplicationsPage = () => {
   const { applications } = useApplications();
   const { getById: getCampaignById } = useCampaigns();
   const { kols } = useKol();
+  const { pushAll } = useSheets();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState<string>("");
   const [status, setStatus] = useState<"All" | ApplicationStatus>("All");
@@ -48,6 +53,45 @@ const ApplicationsPage = () => {
     for (const kol of kols) map.set(kol.id, kol);
     return map;
   }, [kols]);
+
+  // One row per application, joined with the KOL, campaign and store details
+  // so the export is readable straight in a sheet.
+  const exportRows = useMemo<ExportRow[]>(
+    () =>
+      applications.map((a) => {
+        const kol = kolById.get(a.kolId);
+        const campaign = getCampaignById(a.campaignId);
+        const store = findStore(a.pickupStoreId);
+        return {
+          "Application ID": a.id,
+          Campaign: campaign?.name ?? "",
+          "Campaign code": campaign?.campaignCode ?? "",
+          "KOL name": kol?.name ?? "",
+          Handle: kol?.handle ?? "",
+          Platform: kol?.primaryPlatform ?? "",
+          Followers: kol?.followers ?? 0,
+          "Eng. rate %": kol?.er ?? 0,
+          WhatsApp: kol?.whatsapp ?? "",
+          Email: kol?.email ?? "",
+          Status: a.status,
+          Applied: a.appliedAt,
+          "Promo code": a.promoCode ?? "",
+          Discount: a.discountValue ?? "",
+          "Pickup store": store?.name ?? "",
+          "Post URL": a.postUrl ?? "",
+          "Post type": a.postType ?? "",
+          "Post date": a.postDate ?? "",
+          Reach: a.postMetrics?.reach ?? "",
+          Views: a.postMetrics?.views ?? "",
+          Likes: a.postMetrics?.likes ?? "",
+          Comments: a.postMetrics?.comments ?? "",
+          "Post ER %": a.postMetrics?.er ?? "",
+          "Reject reason": a.rejectReason ?? "",
+          Notes: a.notes ?? "",
+        };
+      }),
+    [applications, kolById, getCampaignById],
+  );
 
   const filtered = useMemo<Application[]>(() => {
     const q = search.trim().toLowerCase();
@@ -100,13 +144,20 @@ const ApplicationsPage = () => {
         title="Applications"
         description="Inbox of KOL applications from the public campaign pages."
         actions={
-          <button
-            type="button"
-            onClick={() => setTemplatesOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50"
-          >
-            <MessageSquare size={16} /> Message templates
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setTemplatesOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50"
+            >
+              <MessageSquare size={16} /> Message templates
+            </button>
+            <ExportMenu
+              rows={exportRows}
+              filename="kol-applications"
+              onPushToSheet={() => pushAll("applications", applications)}
+            />
+          </>
         }
       />
 

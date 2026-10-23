@@ -13,15 +13,30 @@ const buildPublicUrl = (slug: string): string => {
   // wherever index.html actually lives — the domain root on Netlify, or
   // /KOL-Dashboard/ on GitHub Pages. Deriving it from the live pathname
   // (rather than import.meta.env.BASE_URL) keeps the share link correct on
-  // any host, and keeps the Messenger/WhatsApp preview fetching a 200.
+  // any host.
   const { origin, pathname } = window.location;
   const root = pathname.endsWith("/") ? pathname : `${pathname}/`;
   return `${origin}${root}#/c/${slug}`;
 };
 
+/**
+ * The clean, preview-friendly URL. Each campaign gets a static HTML page at
+ * /c/<slug>/ with the Open Graph tags baked in, so the preview a KOL sees in
+ * Messenger or WhatsApp shows the product instead of a blank card. Preview
+ * fetchers do not run JavaScript, which is why the running app cannot set
+ * these tags itself.
+ */
+const buildPreviewUrl = (slug: string): string => {
+  if (typeof window === "undefined") return `/c/${slug}/`;
+  const { origin, pathname } = window.location;
+  const root = pathname.endsWith("/") ? pathname : `${pathname}/`;
+  return `${origin}${root}c/${slug}/`;
+};
+
 const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) => {
   const url = buildPublicUrl(campaign.slug);
-  const [copied, setCopied] = useState<"url" | "text" | null>(null);
+  const previewUrl = buildPreviewUrl(campaign.slug);
+  const [copied, setCopied] = useState<"url" | "fallback" | "text" | null>(null);
   const uid = useId();
 
   // Escape closes the dialog.
@@ -33,7 +48,7 @@ const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) =>
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const copy = async (text: string, key: "url" | "text") => {
+  const copy = async (text: string, key: "url" | "fallback" | "text") => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(key);
@@ -102,16 +117,41 @@ const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) =>
             <div className="flex">
               <input
                 readOnly
+                value={previewUrl}
+                onFocus={(e) => e.currentTarget.select()}
+                className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-l-lg text-xs font-mono text-slate-700 outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => copy(previewUrl, "url")}
+                className="px-3 inline-flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium rounded-r-lg hover:bg-slate-800"
+              >
+                <Copy size={14} /> {copied === "url" ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Shows the product in the Messenger / WhatsApp preview. Falls back to the app if the
+              page has not been built yet.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              Direct app link
+            </p>
+            <div className="flex">
+              <input
+                readOnly
                 value={url}
                 onFocus={(e) => e.currentTarget.select()}
                 className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-l-lg text-xs font-mono text-slate-700 outline-none"
               />
               <button
                 type="button"
-                onClick={() => copy(url, "url")}
-                className="px-3 inline-flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium rounded-r-lg hover:bg-slate-800"
+                onClick={() => copy(url, "fallback")}
+                className="px-3 inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-r-lg hover:bg-slate-50"
               >
-                <Copy size={14} /> {copied === "url" ? "Copied" : "Copy"}
+                <Copy size={14} /> {copied === "fallback" ? "Copied" : "Copy"}
               </button>
             </div>
           </div>

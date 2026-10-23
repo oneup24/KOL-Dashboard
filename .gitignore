@@ -10,6 +10,9 @@ dist-smoke
 .vite
 # TS incremental build files emitted by `tsc -b`
 *.tsbuildinfo
-# Stray Vite config emits
+# Stray Vite/TS emits alongside sources
 vite.config.d.ts
 vite.config.js
+src/**/*.js
+src/**/*.d.ts
+!src/vite-env.d.ts

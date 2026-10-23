@@ -2,12 +2,15 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useCampaigns } from "@/context/CampaignsContext";
 import { useKol } from "@/context/KolContext";
+import { useSheets } from "@/context/SheetsContext";
 import { isPastDeadline } from "@/components/shared/workflow";
 import { buildPromoCode, discountForCampaign, randomPromoSuffix } from "@/data/promoCode";
 import { seedApplications } from "@/data/seedApplications";
@@ -126,6 +129,18 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
   const { addKol, updateKol, findByHandle, getById: getKolById, touchLastContacted } =
     useKol();
   const { getById: getCampaignById } = useCampaigns();
+  const { snapshot, push } = useSheets();
+  const hydrated = useRef(false);
+
+  // Seed from the sheet once, the first time a snapshot arrives. Later
+  // refreshes do not clobber local edits — the sheet is the write target,
+  // not a live read loop.
+  useEffect(() => {
+    if (hydrated.current || !snapshot) return;
+    if (snapshot.applications.length > 0) setApplications(snapshot.applications);
+    if (snapshot.messageLog.length > 0) setMessageLog(snapshot.messageLog);
+    hydrated.current = true;
+  }, [snapshot]);
 
   const addApplication = useCallback(
     (input: NewApplicationInput): AddApplicationResult => {
@@ -204,9 +219,10 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
         customAnswers: input.customAnswers,
       };
       setApplications((prev) => [next, ...prev]);
+      push("applications", next);
       return { created: true, application: next };
     },
-    [addKol, applications, findByHandle, getCampaignById, touchLastContacted, updateKol],
+    [addKol, applications, findByHandle, getCampaignById, push, touchLastContacted, updateKol],
   );
 
   const updateStatus = useCallback(
@@ -219,8 +235,13 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
           return { ...merged, ...statusTimestamp(merged, status, now) };
         }),
       );
+      const current = applications.find((a) => a.id === id);
+      if (current) {
+        const merged: Application = { ...current, ...extras, status, updatedAt: now };
+        push("applications", { ...merged, ...statusTimestamp(merged, status, now) });
+      }
     },
-    [],
+    [applications, push],
   );
 
   const approveApplication = useCallback(
@@ -238,26 +259,49 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
           };
         }),
       );
+      const current = applications.find((a) => a.id === id);
+      if (current) {
+        push("applications", {
+          ...current,
+          ...opts,
+          status: "Approved",
+          approvedAt: current.approvedAt ?? now,
+          updatedAt: now,
+        });
+      }
     },
-    [],
+    [applications, push],
   );
 
-  const rejectApplication = useCallback((id: string, reason: string) => {
-    const now = new Date().toISOString();
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? {
-              ...a,
-              status: "Rejected",
-              rejectReason: reason,
-              rejectedAt: a.rejectedAt ?? now,
-              updatedAt: now,
-            }
-          : a,
-      ),
-    );
-  }, []);
+  const rejectApplication = useCallback(
+    (id: string, reason: string) => {
+      const now = new Date().toISOString();
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                status: "Rejected",
+                rejectReason: reason,
+                rejectedAt: a.rejectedAt ?? now,
+                updatedAt: now,
+              }
+            : a,
+        ),
+      );
+      const current = applications.find((a) => a.id === id);
+      if (current) {
+        push("applications", {
+          ...current,
+          status: "Rejected",
+          rejectReason: reason,
+          rejectedAt: current.rejectedAt ?? now,
+          updatedAt: now,
+        });
+      }
+    },
+    [applications, push],
+  );
 
   /**
    * Builds a unique promo code for a campaign + KOL pair and stores it (plus
@@ -290,6 +334,7 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
 
       if (target) {
         const discount = discountForCampaign(campaign);
+        const updatedAt = new Date().toISOString();
         setApplications((prev) =>
           prev.map((a) =>
             a.id === target.id
@@ -297,16 +342,22 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
                   ...a,
                   promoCode: code,
                   discountValue: discount,
-                  updatedAt: new Date().toISOString(),
+                  updatedAt,
                 }
               : a,
           ),
         );
+        push("applications", {
+          ...target,
+          promoCode: code,
+          discountValue: discount,
+          updatedAt,
+        });
       }
 
       return code;
     },
-    [applications, getCampaignById, getKolById],
+    [applications, getCampaignById, getKolById, push],
   );
 
   const logMessage = useCallback(
@@ -317,9 +368,10 @@ export const ApplicationsProvider = ({ children }: { children: ReactNode }) => {
         sentAt: new Date().toISOString(),
       };
       setMessageLog((prev) => [full, ...prev]);
+      push("messageLog", full);
       return full;
     },
-    [],
+    [push],
   );
 
   const messagesFor = useCallback(

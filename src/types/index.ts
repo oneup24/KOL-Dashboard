@@ -190,6 +190,7 @@ export interface Campaign {
   campaignCode: string; // 2-4 uppercase chars used in promo codes, e.g. "AGS"
   language: string; // e.g. "en-HK"
   customQuestions: CampaignQuestion[];
+  updatedAt: string; // ISO — last write, used by the sheet sync
 }
 
 export interface ReportSummary {
@@ -199,7 +200,13 @@ export interface ReportSummary {
   isPositive: boolean;
 }
 
-export type TabId = "overview" | "campaigns" | "kols" | "reports" | "applications";
+export type TabId =
+  | "overview"
+  | "campaigns"
+  | "kols"
+  | "reports"
+  | "applications"
+  | "settings";
 
 export interface NavItem {
   id: TabId;

@@ -8,12 +8,9 @@
   # which lives under /KOL-Dashboard/. See vite.config.ts.
   BASE_PATH = "/"
 
-# The app uses hash routing, so every route is served from the same document.
-# This rewrite is the safety net for direct visits to a path without a hash.
-[[redirects]]
-  from = "/*"
-  to = "/"
-  status = 200
+# The app uses hash routing, so every route lives on the index document and
+# needs no rewrite. The static /c/<slug>/ pages are real files and are served
+# as-is; anything else falls through to 404.html, which bounces back to the app.
 
 [[headers]]
   for = "/assets/*"

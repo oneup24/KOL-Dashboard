@@ -1,5 +1,6 @@
-import { Bell, ChevronDown, Menu, Search } from "lucide-react";
+import { Bell, CheckCircle2, ChevronDown, CloudOff, Loader2, Menu, Search } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useSheets } from "@/context/SheetsContext";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -11,6 +12,45 @@ const titleMap: Record<string, string> = {
   "/kols": "KOL Database",
   "/reports": "Reports",
   "/applications": "Applications",
+  "/settings": "Settings",
+};
+
+/** Small live indicator so the marketer knows whether their work is saved. */
+const SyncIndicator = () => {
+  const { enabled, status } = useSheets();
+  if (!enabled) return null;
+
+  if (status === "loading" || status === "syncing") {
+    return (
+      <span
+        className="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-500"
+        title="Syncing with Google Sheets"
+      >
+        <Loader2 size={13} className="animate-spin" />
+        Syncing
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span
+        className="hidden md:inline-flex items-center gap-1.5 text-xs text-rose-600"
+        title="Google Sheets sync failed — open Settings"
+      >
+        <CloudOff size={13} />
+        Sync failed
+      </span>
+    );
+  }
+  return (
+    <span
+      className="hidden md:inline-flex items-center gap-1.5 text-xs text-emerald-600"
+      title="Synced with Google Sheets"
+    >
+      <CheckCircle2 size={13} />
+      Sheet synced
+    </span>
+  );
 };
 
 const Header = ({ onToggleSidebar }: HeaderProps) => {
@@ -34,6 +74,7 @@ const Header = ({ onToggleSidebar }: HeaderProps) => {
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6">
+        <SyncIndicator />
         <div className="relative hidden md:block">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"

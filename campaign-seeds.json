@@ -1,0 +1,625 @@
+[
+  {
+    "id": 1,
+    "slug": "summer-collection-2026",
+    "name": "Summer Collection Launch",
+    "status": "Active",
+    "progress": 75,
+    "kols": 12,
+    "budget": "$15,000",
+    "endDate": "2026-10-31",
+    "platform": "Instagram",
+    "manager": "Alice Wong",
+    "region": "HK",
+    "productName": "FX Creations AGS Pro Backpack — Sand",
+    "productUrl": "https://fxcreations.com/products/ags-pro-backpack-sand",
+    "productImage": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1200&q=80",
+    "productDescription": "Our new AGS Pro Backpack in sand colourway — anti-gravity suspension, 28L, lifetime warranty.",
+    "campaignBrief": "Show off how the AGS Pro fits into your everyday Hong Kong summer — cafe-hopping in Sheung Wan, weekend hikes, or a Stanley market run.",
+    "requirements": [
+      "1 Reel (60–90s) + 3 Stories",
+      "Tag @fxcreations + use #AGSSummer",
+      "Mention AGS Pro suspension feature"
+    ],
+    "deliverables": [
+      {
+        "platform": "Instagram",
+        "type": "Reel",
+        "count": 1,
+        "length": "60–90s"
+      },
+      {
+        "platform": "Instagram",
+        "type": "Story",
+        "count": 3
+      },
+      {
+        "platform": "Instagram",
+        "type": "Photo set",
+        "count": 3,
+        "notes": "Minimum 3 photos, daylight preferred"
+      }
+    ],
+    "targetKolCount": 12,
+    "maxApplications": 60,
+    "platforms": [
+      "Instagram",
+      "TikTok"
+    ],
+    "kolTiers": [
+      "Micro",
+      "Mid",
+      "Macro"
+    ],
+    "audience": {
+      "ageRange": "18-34",
+      "genderSplit": "70% F / 30% M",
+      "interests": [
+        "Fashion",
+        "Travel",
+        "Lifestyle"
+      ],
+      "region": "HK"
+    },
+    "applicationDeadline": "2026-10-20",
+    "postStartDate": "2026-10-15",
+    "postEndDate": "2026-11-15",
+    "variants": [
+      {
+        "id": "ags-sand",
+        "label": "AGS Pro — Sand",
+        "sku": "FX-AGS-SND-28",
+        "stockByStore": {
+          "cwb": 6,
+          "mk": 4,
+          "tst": 5,
+          "st": 3,
+          "tm": 2
+        }
+      }
+    ],
+    "mandatoryTags": [
+      "#AGSSummer"
+    ],
+    "mandatoryMentions": [
+      "@fxcreations"
+    ],
+    "disclosureText": "#廣告 Advertisement",
+    "feeModel": "gift",
+    "feePerKol": 0,
+    "commissionPct": 0,
+    "totalBudget": 15000,
+    "briefDocUrl": "https://drive.google.com/fx/summer-collection-2026-brief",
+    "storeIds": [
+      "cwb",
+      "mk",
+      "tst"
+    ],
+    "campaignCode": "SUM",
+    "language": "en-HK",
+    "customQuestions": [
+      {
+        "id": "q-shoot-window",
+        "question": "When can you shoot and publish the content?",
+        "required": true
+      },
+      {
+        "id": "q-avg-views",
+        "question": "Roughly how many views do you average on a Reel?",
+        "required": false
+      }
+    ],
+    "updatedAt": "2026-10-01T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "slug": "ags-pro-backpack-review",
+    "name": "AGS Pro Backpack Review",
+    "status": "Planning",
+    "progress": 20,
+    "kols": 5,
+    "budget": "$8,000",
+    "endDate": "2026-11-15",
+    "platform": "YouTube",
+    "manager": "Jason Lee",
+    "region": "TW",
+    "productName": "FX Creations AGS Pro Backpack — Black",
+    "productUrl": "https://fxcreations.com/products/ags-pro-backpack-black",
+    "productImage": "https://images.unsplash.com/photo-1581605405669-fcdf81165afa?auto=format&fit=crop&w=1200&q=80",
+    "productDescription": "In-depth review of the AGS Pro Backpack — designed for daily commute and travel, with patented anti-gravity suspension.",
+    "campaignBrief": "Honest, in-depth review covering: build quality, comfort over a full work day, and how it handles a 3-day trip.",
+    "requirements": [
+      "1 long-form video (8–12 min)",
+      "Show real packing for a 3-day trip",
+      "Compare against one other premium backpack"
+    ],
+    "deliverables": [
+      {
+        "platform": "YouTube",
+        "type": "Long-form video",
+        "count": 1,
+        "length": "8–12 min"
+      },
+      {
+        "platform": "TikTok",
+        "type": "Short clip",
+        "count": 2,
+        "length": "30–60s"
+      }
+    ],
+    "targetKolCount": 5,
+    "maxApplications": 25,
+    "platforms": [
+      "YouTube",
+      "Instagram"
+    ],
+    "kolTiers": [
+      "Mid",
+      "Macro",
+      "Mega"
+    ],
+    "audience": {
+      "ageRange": "25-44",
+      "genderSplit": "60% M / 40% F",
+      "interests": [
+        "Tech",
+        "Travel",
+        "Outdoor"
+      ],
+      "region": "TW"
+    },
+    "applicationDeadline": "2026-11-01",
+    "postStartDate": "2026-11-01",
+    "postEndDate": "2026-12-05",
+    "variants": [
+      {
+        "id": "ags-black",
+        "label": "AGS Pro — Black",
+        "sku": "FX-AGS-BLK-28",
+        "stockByStore": {
+          "cwb": 4,
+          "mk": 3,
+          "tst": 4,
+          "st": 2,
+          "tm": 2
+        }
+      }
+    ],
+    "mandatoryTags": [
+      "#AGSPro"
+    ],
+    "mandatoryMentions": [
+      "@fxcreations"
+    ],
+    "disclosureText": "#廣告 Advertisement",
+    "feeModel": "flat",
+    "feePerKol": 800,
+    "commissionPct": 0,
+    "totalBudget": 8000,
+    "briefDocUrl": "https://drive.google.com/fx/ags-pro-review-brief",
+    "storeIds": [
+      "cwb",
+      "tst",
+      "mk"
+    ],
+    "campaignCode": "AGS",
+    "language": "zh-TW",
+    "customQuestions": [
+      {
+        "id": "q-review-angle",
+        "question": "What angle would you take for the review?",
+        "required": true
+      }
+    ],
+    "updatedAt": "2026-10-01T00:00:00Z"
+  },
+  {
+    "id": 3,
+    "slug": "back-to-school-2026",
+    "name": "Back to School Promo",
+    "status": "Completed",
+    "progress": 100,
+    "kols": 20,
+    "budget": "$25,000",
+    "endDate": "2026-09-01",
+    "platform": "TikTok",
+    "manager": "Mei Chan",
+    "region": "HK",
+    "productName": "FX Creations Campus Backpack",
+    "productUrl": "https://fxcreations.com/products/campus-backpack",
+    "productImage": "https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=1200&q=80",
+    "productDescription": "Lightweight campus backpack with laptop sleeve and organiser pockets.",
+    "campaignBrief": "Show your BTS morning routine — commute, library, lunch.",
+    "requirements": [
+      "1 TikTok (15–30s)",
+      "Use #FXBackToSchool",
+      "Feature the laptop sleeve"
+    ],
+    "deliverables": [
+      {
+        "platform": "TikTok",
+        "type": "TikTok",
+        "count": 1,
+        "length": "15–30s"
+      },
+      {
+        "platform": "Instagram",
+        "type": "Carousel post",
+        "count": 1
+      }
+    ],
+    "targetKolCount": 20,
+    "maxApplications": 120,
+    "platforms": [
+      "TikTok",
+      "Instagram"
+    ],
+    "kolTiers": [
+      "Nano",
+      "Micro",
+      "Mid",
+      "Macro"
+    ],
+    "audience": {
+      "ageRange": "13-24",
+      "genderSplit": "45% F / 55% M",
+      "interests": [
+        "Fashion",
+        "Tech",
+        "Lifestyle"
+      ],
+      "region": "HK"
+    },
+    "applicationDeadline": "2026-08-05",
+    "postStartDate": "2026-08-10",
+    "postEndDate": "2026-09-01",
+    "variants": [
+      {
+        "id": "campus-navy",
+        "label": "Campus Backpack — Navy",
+        "sku": "FX-CMP-NVY-22",
+        "stockByStore": {
+          "cwb": 8,
+          "mk": 6,
+          "tst": 8,
+          "st": 5,
+          "tm": 4
+        }
+      }
+    ],
+    "mandatoryTags": [
+      "#FXBackToSchool"
+    ],
+    "mandatoryMentions": [
+      "@fxcreations"
+    ],
+    "disclosureText": "#廣告 Advertisement",
+    "feeModel": "gift",
+    "feePerKol": 0,
+    "commissionPct": 0,
+    "totalBudget": 25000,
+    "briefDocUrl": "https://drive.google.com/fx/back-to-school-2026-brief",
+    "storeIds": [
+      "cwb",
+      "mk",
+      "tst",
+      "st",
+      "tm"
+    ],
+    "campaignCode": "BTS",
+    "language": "en-HK",
+    "customQuestions": [
+      {
+        "id": "q-school-type",
+        "question": "Are you a secondary school, university or working adult?",
+        "required": false
+      }
+    ],
+    "updatedAt": "2026-10-01T00:00:00Z"
+  },
+  {
+    "id": 4,
+    "slug": "holiday-gift-guide-2026",
+    "name": "Holiday Gift Guide",
+    "status": "Draft",
+    "progress": 0,
+    "kols": 0,
+    "budget": "$30,000",
+    "endDate": "2026-12-25",
+    "platform": "Xiaohongshu",
+    "manager": "Alice Wong",
+    "region": "CN",
+    "productName": "FX Creations Holiday Gift Edit",
+    "productUrl": "https://fxcreations.com/holiday-gifts",
+    "productImage": "https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&w=1200&q=80",
+    "productDescription": "Curated holiday gift set — limited edition colourways and gift packaging.",
+    "campaignBrief": "Unbox the holiday set and share your top 3 picks under $100.",
+    "requirements": [
+      "1 Xiaohongshu post (image + text)",
+      "Mention the gift packaging",
+      "Use #FXHolidayGifts"
+    ],
+    "deliverables": [
+      {
+        "platform": "Xiaohongshu",
+        "type": "RED post",
+        "count": 1
+      },
+      {
+        "platform": "Xiaohongshu",
+        "type": "Short video",
+        "count": 1,
+        "length": "30–60s"
+      }
+    ],
+    "targetKolCount": 15,
+    "maxApplications": 80,
+    "platforms": [
+      "Xiaohongshu",
+      "Instagram"
+    ],
+    "kolTiers": [
+      "Mid",
+      "Macro"
+    ],
+    "audience": {
+      "ageRange": "18-34",
+      "genderSplit": "85% F / 15% M",
+      "interests": [
+        "Fashion",
+        "Beauty",
+        "Lifestyle",
+        "Travel"
+      ],
+      "region": "CN"
+    },
+    "applicationDeadline": "2026-11-20",
+    "postStartDate": "2026-11-25",
+    "postEndDate": "2026-12-24",
+    "variants": [
+      {
+        "id": "gift-edit",
+        "label": "Holiday Gift Edit",
+        "sku": "FX-GIFT-2026",
+        "stockByStore": {
+          "cwb": 10,
+          "mk": 8,
+          "tst": 10,
+          "st": 6,
+          "tm": 5
+        }
+      }
+    ],
+    "mandatoryTags": [
+      "#FXHolidayGifts"
+    ],
+    "mandatoryMentions": [
+      "@fxcreations"
+    ],
+    "disclosureText": "#廣告 Advertisement",
+    "feeModel": "gift",
+    "feePerKol": 0,
+    "commissionPct": 0,
+    "totalBudget": 30000,
+    "storeIds": [
+      "cwb",
+      "mk",
+      "tst"
+    ],
+    "campaignCode": "HOL",
+    "language": "zh-CN",
+    "customQuestions": [
+      {
+        "id": "q-gift-recipients",
+        "question": "Who is the gift set for?",
+        "required": false
+      }
+    ],
+    "updatedAt": "2026-10-01T00:00:00Z"
+  },
+  {
+    "id": 5,
+    "slug": "q4-brand-awareness",
+    "name": "Q4 Brand Awareness",
+    "status": "Active",
+    "progress": 42,
+    "kols": 8,
+    "budget": "$18,500",
+    "endDate": "2026-12-10",
+    "platform": "Instagram",
+    "manager": "Jason Lee",
+    "region": "HK",
+    "productName": "FX Creations AGS Series",
+    "productUrl": "https://fxcreations.com/collections/ags",
+    "productImage": "https://images.unsplash.com/photo-1591561954555-607968c989ab?auto=format&fit=crop&w=1200&q=80",
+    "productDescription": "Hero the AGS series across your week — work, weekend, travel.",
+    "campaignBrief": "Show the AGS series in 3 different real-life scenarios.",
+    "requirements": [
+      "3 Reels across 2 weeks",
+      "Tag @fxcreations",
+      "Use #AGSLife"
+    ],
+    "deliverables": [
+      {
+        "platform": "Instagram",
+        "type": "Reel",
+        "count": 3,
+        "length": "30–60s"
+      },
+      {
+        "platform": "Instagram",
+        "type": "Story",
+        "count": 6
+      }
+    ],
+    "targetKolCount": 8,
+    "maxApplications": 40,
+    "platforms": [
+      "Instagram",
+      "TikTok",
+      "YouTube"
+    ],
+    "kolTiers": [
+      "Macro",
+      "Mega"
+    ],
+    "audience": {
+      "ageRange": "22-38",
+      "genderSplit": "55% F / 45% M",
+      "interests": [
+        "Fashion",
+        "Tech",
+        "Fitness",
+        "Travel"
+      ],
+      "region": "HK"
+    },
+    "applicationDeadline": "2026-11-08",
+    "postStartDate": "2026-11-01",
+    "postEndDate": "2026-12-10",
+    "variants": [
+      {
+        "id": "ags-series",
+        "label": "AGS Series (assorted colours)",
+        "sku": "FX-AGS-SERIES",
+        "stockByStore": {
+          "cwb": 5,
+          "mk": 5,
+          "tst": 5,
+          "st": 3,
+          "tm": 3
+        }
+      }
+    ],
+    "mandatoryTags": [
+      "#AGSLife"
+    ],
+    "mandatoryMentions": [
+      "@fxcreations"
+    ],
+    "disclosureText": "#廣告 Advertisement",
+    "feeModel": "commission",
+    "feePerKol": 0,
+    "commissionPct": 10,
+    "totalBudget": 18500,
+    "briefDocUrl": "https://drive.google.com/fx/q4-brand-awareness-brief",
+    "storeIds": [
+      "cwb",
+      "mk",
+      "tst",
+      "st"
+    ],
+    "campaignCode": "Q4B",
+    "language": "en-HK",
+    "customQuestions": [
+      {
+        "id": "q-scenarios",
+        "question": "Which 3 real-life scenarios do you plan to shoot?",
+        "required": true
+      },
+      {
+        "id": "q-audience-fit",
+        "question": "Which cities is your audience based in?",
+        "required": false
+      }
+    ],
+    "updatedAt": "2026-10-01T00:00:00Z"
+  },
+  {
+    "id": 6,
+    "slug": "travel-essentials",
+    "name": "Travel Essentials Series",
+    "status": "Planning",
+    "progress": 10,
+    "kols": 3,
+    "budget": "$6,000",
+    "endDate": "2026-11-30",
+    "platform": "TikTok",
+    "manager": "Mei Chan",
+    "region": "TW",
+    "productName": "FX Creations Travel Pack",
+    "productUrl": "https://fxcreations.com/collections/travel",
+    "productImage": "https://images.unsplash.com/photo-1501554728187-ce583db33af7?auto=format&fit=crop&w=1200&q=80",
+    "productDescription": "Compact travel essentials — packing cubes, sling, passport holder.",
+    "campaignBrief": "Pack a carry-on in 60 seconds using the FX Travel Pack.",
+    "requirements": [
+      "1 TikTok (45–60s)",
+      "Show full pack for a 4-day trip",
+      "Use #FXTravelPack"
+    ],
+    "deliverables": [
+      {
+        "platform": "TikTok",
+        "type": "TikTok",
+        "count": 1,
+        "length": "45–60s"
+      },
+      {
+        "platform": "Instagram",
+        "type": "Carousel post",
+        "count": 1
+      }
+    ],
+    "targetKolCount": 3,
+    "maxApplications": 20,
+    "platforms": [
+      "TikTok"
+    ],
+    "kolTiers": [
+      "Micro",
+      "Mid"
+    ],
+    "audience": {
+      "ageRange": "20-35",
+      "genderSplit": "50% F / 50% M",
+      "interests": [
+        "Travel",
+        "Outdoor",
+        "Lifestyle"
+      ],
+      "region": "TW"
+    },
+    "applicationDeadline": "2026-11-10",
+    "postStartDate": "2026-11-15",
+    "postEndDate": "2026-12-15",
+    "variants": [
+      {
+        "id": "travel-pack",
+        "label": "Travel Pack (cube set)",
+        "sku": "FX-TRV-CUBE",
+        "stockByStore": {
+          "cwb": 4,
+          "mk": 3,
+          "tst": 4,
+          "st": 2,
+          "tm": 2
+        }
+      }
+    ],
+    "mandatoryTags": [
+      "#FXTravelPack"
+    ],
+    "mandatoryMentions": [
+      "@fxcreations"
+    ],
+    "disclosureText": "#廣告 Advertisement",
+    "feeModel": "gift",
+    "feePerKol": 0,
+    "commissionPct": 0,
+    "totalBudget": 6000,
+    "storeIds": [
+      "tst",
+      "cwb"
+    ],
+    "campaignCode": "TRV",
+    "language": "zh-TW",
+    "customQuestions": [
+      {
+        "id": "q-trip-length",
+        "question": "How long is the trip you will show?",
+        "required": false
+      }
+    ],
+    "updatedAt": "2026-10-01T00:00:00Z"
+  }
+]

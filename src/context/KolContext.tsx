@@ -2,12 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { normaliseHandle, seedKols } from "@/data/seedKols";
+import { useSheets } from "@/context/SheetsContext";
 import type {
   Kol,
   KolPostRecord,
@@ -82,6 +84,17 @@ export const KolProvider = ({ children }: { children: ReactNode }) => {
   // Guards against two records being created in the same tick, where the
   // state update has not been flushed yet.
   const assignedIds = useRef<Set<number>>(new Set());
+  const { snapshot, push, remove: removeRemote } = useSheets();
+  const hydrated = useRef(false);
+
+  // Seed from the sheet once, the first time a snapshot arrives. Later
+  // refreshes do not clobber local edits — the sheet is the write target,
+  // not a live read loop.
+  useEffect(() => {
+    if (hydrated.current || !snapshot) return;
+    if (snapshot.kols.length > 0) setKols(snapshot.kols);
+    hydrated.current = true;
+  }, [snapshot]);
 
   const addKol = useCallback(
     (input: NewKolInput): Kol => {
@@ -116,20 +129,30 @@ export const KolProvider = ({ children }: { children: ReactNode }) => {
       };
 
       setKols((prev) => [...prev, created]);
+      push("kols", created);
       return created;
     },
-    [kols],
+    [kols, push],
   );
 
-  const updateKol = useCallback((id: number, partial: Partial<Kol>) => {
-    setKols((prev) =>
-      prev.map((k) => (k.id === id ? { ...k, ...partial } : k)),
-    );
-  }, []);
+  const updateKol = useCallback(
+    (id: number, partial: Partial<Kol>) => {
+      setKols((prev) =>
+        prev.map((k) => (k.id === id ? { ...k, ...partial } : k)),
+      );
+      const current = kols.find((k) => k.id === id);
+      if (current) push("kols", { ...current, ...partial });
+    },
+    [kols, push],
+  );
 
-  const removeKol = useCallback((id: number) => {
-    setKols((prev) => prev.filter((k) => k.id !== id));
-  }, []);
+  const removeKol = useCallback(
+    (id: number) => {
+      setKols((prev) => prev.filter((k) => k.id !== id));
+      removeRemote("kols", id);
+    },
+    [removeRemote],
+  );
 
   const findByHandle = useCallback(
     (handle: string): Kol | undefined => {
@@ -149,11 +172,18 @@ export const KolProvider = ({ children }: { children: ReactNode }) => {
    * Stores the whole post record — `postType`, `variantId` and the metrics
    * bag all ride along untouched.
    */
-  const addPost = useCallback((kolId: number, post: KolPostRecord) => {
-    setKols((prev) =>
-      prev.map((k) => (k.id === kolId ? { ...k, posts: [post, ...k.posts] } : k)),
-    );
-  }, []);
+  const addPost = useCallback(
+    (kolId: number, post: KolPostRecord) => {
+      setKols((prev) =>
+        prev.map((k) => (k.id === kolId ? { ...k, posts: [post, ...k.posts] } : k)),
+      );
+      const current = kols.find((k) => k.id === kolId);
+      if (current) {
+        push("kols", { ...current, posts: [post, ...current.posts] });
+      }
+    },
+    [kols, push],
+  );
 
   /**
    * CRM rollup for one creator — how many campaigns they have worked on,
@@ -172,12 +202,17 @@ export const KolProvider = ({ children }: { children: ReactNode }) => {
     [kols],
   );
 
-  const touchLastContacted = useCallback((kolId: number) => {
-    const now = new Date().toISOString();
-    setKols((prev) =>
-      prev.map((k) => (k.id === kolId ? { ...k, lastContactedAt: now } : k)),
-    );
-  }, []);
+  const touchLastContacted = useCallback(
+    (kolId: number) => {
+      const now = new Date().toISOString();
+      setKols((prev) =>
+        prev.map((k) => (k.id === kolId ? { ...k, lastContactedAt: now } : k)),
+      );
+      const current = kols.find((k) => k.id === kolId);
+      if (current) push("kols", { ...current, lastContactedAt: now });
+    },
+    [kols, push],
+  );
 
   const value = useMemo(
     () => ({
