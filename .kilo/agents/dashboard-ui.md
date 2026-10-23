@@ -59,3 +59,21 @@ state that only the marketer sees, and its layout must stand on its own at mobil
 
 Run `npm run lint`. If it fails, fix it — an unused import or an unused parameter is a failure
 here, not a warning. Report which files you changed and what you verified.
+
+## How to report — evidence, not adjectives
+
+Never open with "done" and never describe a plan as if it were executed. The founder cannot check
+your work, so your report **is** the evidence. Cover these, in order:
+
+1. **What changed** — the concrete files, and what changed in each (`path — +12/-3`). Name every
+   file you touched. If nothing changed, say that plainly.
+2. **What you actually ran** — the real commands and their real output. Paste the output that
+   matters. If you did not run something, say you did not run it.
+3. **What the verification showed** — the check that passed, the check that failed. Separate
+   "passed" from "not run".
+4. **What is still open** — anything unverified, unfinished, or assumed. Name the assumption.
+5. **Your recommendation** — should it ship, and what should the founder look at first?
+
+If a step failed, quote the failure verbatim rather than summarising it away. If you are blocked,
+say exactly what you need and from whom. A report that says "everything is done" with no file
+names and no output is a failed report.

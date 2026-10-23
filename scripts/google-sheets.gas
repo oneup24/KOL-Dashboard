@@ -4,29 +4,29 @@
  *
  * SETUP (once, ~3 minutes)
  * -----------------------
- * 1. Create a new script at https://script.google.com (or Extensions > Apps
- *    Script from inside an existing Sheet) and paste this whole file > Save.
+ * 1. Open your script at https://script.google.com and paste this whole file
+ *    over Code.gs > Save.
  * 2. Deploy > New deployment > type "Web app" >
  *      Execute as:  Me
  *      Who has access: Anyone            <-- important, "Anyone" not "Anyone with Google account"
  *    Copy the Web app URL. It looks like:
  *      https://script.google.com/macros/s/AKfycbXXXXXXXX/exec
- *    (The URL you get from the script *editor* — /macros/library/... — is NOT
- *    this one. You need the URL from Deploy > New deployment.)
+ *    (The URL from the script *editor* — /macros/library/... — is NOT this
+ *    one. You need the URL from Deploy > New deployment.)
  * 3. Paste that URL into the dashboard: Settings > Google Sheets > Web app URL.
  *
  * The spreadsheet is handled automatically:
  *   - If you ran this from inside a Sheet, that Sheet is used.
- *   - Otherwise the script creates "FX Creations — KOL Dashboard" for you on
- *     first use and remembers it. The Settings page shows a link to it.
+ *   - Otherwise the script creates "FX Creations — KOL Dashboard" on first use
+ *     and remembers it. The Settings page shows a link to it.
  *   - To point at a specific Sheet, set the SPREADSHEET_ID script property
  *     (Project Settings > Script Properties).
  *
- * You can also run the `setup` function once from the editor to create the
- * tabs immediately instead of waiting for the first request.
+ * You can run the `setup` function once from the editor to create the tabs
+ * immediately instead of waiting for the first request.
  *
  * Every time you change the script you must Deploy > Manage deployments >
- * Edit > Version: New version, then it re-deploys.
+ * Edit > Version: New version, then re-deploy.
  *
  * TABS
  * ----
@@ -35,11 +35,18 @@
  *   Applications  one row per campaign application
  *   MessageLog    one row per message sent to a KOL / the sales team
  *
- * The first row of each tab is the header. Columns are written in a fixed
- * order. Scalar fields get their own column so the sheet stays readable;
- * arrays and objects are stored as JSON text in a single column. Any field
- * that is not in the schema is preserved in the trailing `extra` JSON column,
- * so adding a field to the app never silently drops data.
+ * HOW THE SHEET IS WRITTEN
+ * ------------------------
+ * The first row of each tab is the header. Rows are written by COLUMN NAME,
+ * not by position, so the script is safe to run against a sheet that already
+ * has data in a different column order.
+ *
+ *   - Scalar fields get their own column so the sheet stays readable.
+ *   - Arrays and objects are stored as JSON text in a single column.
+ *   - Any field the script does not know about is preserved in the trailing
+ *     `extra` JSON column, so a new field in the app never silently drops data.
+ *   - If a tab is missing a column, it is appended — existing rows keep their
+ *     data and their column positions.
  */
 
 const TABS = {
@@ -50,7 +57,7 @@ const TABS = {
 };
 
 /**
- * Column order per tab.
+ * The columns each tab should have.
  *   simple: written verbatim into its own cell
  *   json:   written as JSON text into a single cell
  */
@@ -58,13 +65,13 @@ const SCHEMA = {
   campaigns: {
     simple: [
       "id", "slug", "name", "status", "platform", "region", "manager",
-      "budget", "totalBudget", "feeModel", "feePerKol", "commissionPct",
+      "budget", "totalBudget",
       "targetKolCount", "maxApplications", "campaignCode",
       "applicationDeadline", "postStartDate", "postEndDate", "endDate",
       "progress", "kols",
       "productName", "productUrl", "productImage", "productDescription",
       "campaignBrief", "disclosureText", "briefDocUrl", "language",
-      "feeModel", "feePerKol", "commissionPct", "totalBudget",
+      "feeModel", "feePerKol", "commissionPct",
       "feeDisplayEnabled", "feeDisplayText",
       "promoCodeTemplate", "promoCodeValue",
       "updatedAt",
@@ -74,6 +81,10 @@ const SCHEMA = {
       "mandatoryMentions", "audience", "variants", "storeIds", "kolTiers",
       "customQuestions",
     ],
+    // Columns holding true/false. A sheet stores everything as text, so
+    // these are read back as real booleans — otherwise the string "false"
+    // would be truthy and flip the flag the wrong way.
+    bools: ["feeDisplayEnabled"],
   },
   kols: {
     simple: [
@@ -95,30 +106,23 @@ const SCHEMA = {
       "postUrl", "postPlatform", "postDate", "postType", "paid",
     ],
     json: ["postMetrics", "customAnswers"],
+    bools: ["paid"],
   },
   messageLog: {
-    simple: ["id", "templateId", "applicationId", "recipient", "channel", "renderedBody", "sentAt", "sentBy"],
+    simple: [
+      "id", "templateId", "applicationId", "recipient", "channel",
+      "renderedBody", "sentAt", "sentBy",
+    ],
     json: [],
   },
 };
 
-/* ── setup ─────────────────────────────────────────────────────────────── */
+/* ── sheet helpers ──────────────────────────────────────────────────────── */
 
-function setup() {
-  const ss = getSpreadsheet();
-  Object.keys(TABS).forEach(function (entity) {
-    const tab = TABS[entity];
-    let sheet = ss.getSheetByName(tab);
-    if (!sheet) sheet = ss.insertSheet(tab);
-    const spec = SCHEMA[entity];
-    const header = spec.simple.concat(spec.json).concat(["extra"]);
-    sheet.getRange(1, 1, 1, header.length).setValues([header]);
-    sheet.setFrozenRows(1);
-    if (sheet.getLastRow() < 2) {
-      sheet.getRange(2, 1, 1, header.length).setValues([header.map(function () { return ""; })]);
-    }
-  });
-  return "Tabs ready: " + Object.keys(TABS).map(function (e) { return TABS[e]; }).join(", ");
+/** The column names a tab should have, in canonical order. */
+function wantedColumns(entity) {
+  const spec = SCHEMA[entity] || { simple: [], json: [] };
+  return spec.simple.concat(spec.json).concat(["extra"]);
 }
 
 /**
@@ -132,8 +136,7 @@ function setup() {
  *   3. A brand new Sheet, created on first use. The id is remembered in the
  *      script properties so the next run reuses it.
  *
- * That third option means a standalone script works with zero configuration:
- * deploy it, paste the URL into the dashboard, and it makes its own Sheet.
+ * That third option means a standalone script works with zero configuration.
  */
 function getSpreadsheet() {
   const props = PropertiesService.getScriptProperties();
@@ -148,22 +151,98 @@ function getSpreadsheet() {
 
   const created = SpreadsheetApp.create("FX Creations — KOL Dashboard");
   props.setProperty("SPREADSHEET_ID", created.getId());
-  setup();
   return created;
 }
 
+/** True when the tab holds at least one record (not just a header). */
+function hasRecords(sheet) {
+  if (sheet.getLastRow() < 2) return false;
+  const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  return ids.some(function (row) { return row[0] !== "" && row[0] !== null; });
+}
+
+/** The current header of a tab, as an array of column names. */
+function headerOf(sheet) {
+  if (sheet.getLastColumn() < 1) return [];
+  return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+}
+
+/**
+ * Appends any missing column to the tab and returns the resulting header.
+ * Existing columns keep their position, so data already in the sheet is
+ * never shifted.
+ */
+function ensureColumns(sheet, entity) {
+  const wanted = wantedColumns(entity);
+  const header = headerOf(sheet);
+  const missing = wanted.filter(function (name) {
+    return header.indexOf(name) === -1;
+  });
+  if (missing.length > 0) {
+    // Insert right after the last used column so no gap opens up in the
+    // sheet and the existing rows keep their positions.
+    const after = sheet.getLastColumn();
+    sheet.insertColumnsAfter(after, missing.length);
+    sheet.getRange(1, after + 1, 1, missing.length).setValues([missing]);
+  }
+  return headerOf(sheet);
+}
+
+/** Returns the tab, creating it with the canonical header if it is missing. */
 function tabSheet(entity) {
   const ss = getSpreadsheet();
   const tab = TABS[entity] || entity;
   let sheet = ss.getSheetByName(tab);
   if (!sheet) {
     sheet = ss.insertSheet(tab);
-    const spec = SCHEMA[entity] || { simple: [], json: [] };
-    const header = spec.simple.concat(spec.json).concat(["extra"]);
-    sheet.getRange(1, 1, 1, header.length).setValues([header]);
+    const wanted = wantedColumns(entity);
+    sheet.getRange(1, 1, 1, wanted.length).setValues([wanted]);
     sheet.setFrozenRows(1);
+    return sheet;
   }
+  ensureColumns(sheet, entity);
   return sheet;
+}
+
+/* ── setup ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Creates the four tabs.
+ *
+ * Safe to run more than once. A tab that already holds data keeps its
+ * existing columns — new columns are appended rather than inserted, so
+ * nothing already in the sheet shifts.
+ */
+function setup() {
+  const ss = getSpreadsheet();
+  Object.keys(TABS).forEach(function (entity) {
+    const tab = TABS[entity];
+    let sheet = ss.getSheetByName(tab);
+    const wanted = wantedColumns(entity);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(tab);
+      sheet.getRange(1, 1, 1, wanted.length).setValues([wanted]);
+      sheet.setFrozenRows(1);
+      return;
+    }
+
+    if (!hasRecords(sheet)) {
+      // Empty tab — write the canonical header.
+      sheet.getRange(1, 1, 1, wanted.length).setValues([wanted]);
+      sheet.setFrozenRows(1);
+      return;
+    }
+
+    // Tab already has data — only append the columns it is missing.
+    ensureColumns(sheet, entity);
+  });
+  return (
+    "Tabs ready: " +
+    Object.keys(TABS)
+      .map(function (e) { return TABS[e]; })
+      .join(", ")
+  );
 }
 
 /* ── read ──────────────────────────────────────────────────────────────── */
@@ -180,11 +259,14 @@ function readEntity(entity) {
   const sheet = tabSheet(entity);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const header = headerOf(sheet);
+  if (!header.length) return [];
   const rows = sheet.getRange(2, 1, lastRow - 1, header.length).getValues();
   const spec = SCHEMA[entity] || { simple: [], json: [] };
   const jsonCols = {};
   spec.json.forEach(function (k) { jsonCols[k] = true; });
+  const boolCols = {};
+  (spec.bools || []).forEach(function (k) { boolCols[k] = true; });
 
   const records = [];
   for (let r = 0; r < rows.length; r++) {
@@ -208,6 +290,10 @@ function readEntity(entity) {
         }
         continue;
       }
+      if (boolCols[key]) {
+        record[key] = cell === "" ? null : String(cell).toLowerCase() === "true";
+        continue;
+      }
       record[key] = cell === "" ? null : cell;
     }
     records.push(Object.assign(extra, record));
@@ -217,32 +303,34 @@ function readEntity(entity) {
 
 /* ── write ─────────────────────────────────────────────────────────────── */
 
-function toRow(entity, record) {
+/**
+ * Builds the row to write, following the SHEET's own header order rather
+ * than the canonical order. Fields the sheet has no column for are collected
+ * into the trailing `extra` cell.
+ */
+function toRow(entity, record, header) {
   const spec = SCHEMA[entity] || { simple: [], json: [] };
   const jsonCols = {};
   spec.json.forEach(function (k) { jsonCols[k] = true; });
+  const known = {};
+  spec.simple.concat(spec.json).forEach(function (k) { known[k] = true; });
+
   const extra = {};
-
-  const simple = spec.simple.map(function (key) {
-    const v = record[key];
-    return v === undefined || v === null ? "" : String(v);
-  });
-  const json = spec.json.map(function (key) {
-    const v = record[key];
-    if (v === undefined || v === null) return "";
-    return typeof v === "string" ? v : JSON.stringify(v);
-  });
-
-  spec.simple.concat(spec.json).forEach(function (key) {
-    if (!(key in record)) return;
+  Object.keys(record).forEach(function (key) {
+    if (known[key]) return;
     const v = record[key];
     if (v === undefined || v === null) return;
-    if (jsonCols[key]) return;
-    if (spec.simple.indexOf(key) === -1) extra[key] = v;
+    extra[key] = v;
   });
   const extraCell = Object.keys(extra).length ? JSON.stringify(extra) : "";
 
-  return simple.concat(json).concat([extraCell]);
+  return header.map(function (key) {
+    if (key === "extra") return extraCell;
+    const v = record[key];
+    if (v === undefined || v === null) return "";
+    if (jsonCols[key]) return typeof v === "string" ? v : JSON.stringify(v);
+    return String(v);
+  });
 }
 
 function upsert(entity, record) {
@@ -250,12 +338,13 @@ function upsert(entity, record) {
   const id = record.id;
   if (id === undefined || id === null) throw new Error("Record has no id");
 
-  const row = toRow(entity, record);
-  const lastRow = sheet.getLastRow();
-  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const idCol = header.indexOf("id") + 1;
-  if (idCol < 1) throw new Error("No id column in " + TABS[entity]);
+  const header = ensureColumns(sheet, entity);
+  const row = toRow(entity, record, header);
 
+  const idCol = header.indexOf("id") + 1;
+  if (idCol < 1) throw new Error("No id column in " + (TABS[entity] || entity));
+
+  const lastRow = sheet.getLastRow();
   if (lastRow >= 2) {
     const ids = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
     for (let i = 0; i < ids.length; i++) {
@@ -273,7 +362,7 @@ function remove(entity, id) {
   const sheet = tabSheet(entity);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { ok: true, removed: 0 };
-  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const header = headerOf(sheet);
   const idCol = header.indexOf("id") + 1;
   if (idCol < 1) return { ok: true, removed: 0 };
   const ids = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
@@ -302,6 +391,9 @@ function doGet(e) {
         tabs: Object.keys(TABS),
       });
     }
+    if (action === "setup") {
+      return json({ ok: true, message: setup() });
+    }
     return json({ ok: true, data: readAll() });
   } catch (err) {
     return json({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -322,12 +414,13 @@ function doPost(e) {
       return json(remove(body.entity, body.id));
     }
     if (action === "bulk") {
-      const results = [];
       const records = body.records || [];
+      let count = 0;
       for (let i = 0; i < records.length; i++) {
-        results.push(upsert(body.entity, records[i]));
+        upsert(body.entity, records[i]);
+        count++;
       }
-      return json({ ok: true, count: results.length });
+      return json({ ok: true, count: count });
     }
     return json({ ok: false, error: "Unknown action: " + action });
   } catch (err) {

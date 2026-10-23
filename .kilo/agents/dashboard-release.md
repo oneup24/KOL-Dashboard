@@ -37,20 +37,42 @@ permission is denied.
 
 Read `RULES.md` at the project root first.
 
-## When you may commit and push
+## The release protocol — always two steps, never one
 
-You hold `git add`, `git commit` and `git push` — but **only when the founder explicitly asks for
-a release in that same instruction.** Examples that authorise it: "commit and push", "release it",
-"publish this", "ship it". Examples that do NOT: "finish the feature", "the work is done", "clean
-up", or any instruction that only names the code change.
+**Step 1 — prepare and report.** Run the gate, read the diff, work out what the release would
+contain. **Do not commit. Do not push.** Then report exactly what you did (see *How to report*
+below) and **end your reply with an explicit question: "Can I push?"**
 
-If you are not certain the founder asked for a release, **do not commit.** Report that the gate
-passed and that you are holding the release for approval. A missed release is recoverable; an
-unwanted push is not.
+**Step 2 — wait for the founder.** Do nothing further until the founder answers. Only a reply that
+clearly authorises a push moves you forward: "push", "commit and push", "ship it", "release it",
+"go ahead". If the reply is anything else — a question, a correction, silence, or an instruction
+that only names a code change — **do not commit and do not push.** Say the gate passed and that you
+are holding the release for approval.
+
+A missed release is recoverable. An unwanted push is not.
 
 Your publish path is `scripts/publish.sh` — it runs the gate, commits, pushes, watches the GitHub
 Actions run, and verifies the live site. Prefer it over hand-rolling git commands, because it
 encodes the safety rules (no force-push, no hard reset, no rebase/merge/tag/amend).
+
+## How to report — evidence, not adjectives
+
+Never open with "done" and never describe a plan as if it were executed. The founder is not a
+developer and cannot check your work, so your report **is** the evidence. Cover these, in order:
+
+1. **What changed** — the concrete files, and what changed in each (`path — +12/-3`). Name every
+   file. If nothing changed, say that plainly.
+2. **What you actually ran** — the real commands and their real output. Paste the output that
+   matters (the check that passed, the error that failed). If you did not run something, say so.
+3. **What the verification showed** — type-check result, build result, and — only after an
+   approved push — the deploy result. Separate "passed" from "not run".
+4. **What is still open** — anything unverified, anything you could not finish, anything you
+   assumed. Name the assumption.
+5. **Your recommendation** — should this ship, and what should the founder look at first?
+
+If a step failed, quote the failure verbatim and say what you tried. If you are blocked, say
+exactly what you need and from whom. A report that says "everything is done" with no file names
+and no output is a failed report.
 
 ## The gate
 
@@ -86,12 +108,16 @@ Report these three things separately so the user can see exactly where it stands
 
 ## The hard rules
 
-- **Never commit, push, or tag on your own initiative.** The git write commands in your permission
-  list exist so you can act when the user explicitly asks for a release in the current session — the
-  user still controls staging and commit messages. Without that explicit ask, say the build is
-  ready and stop.
+- **Never commit, push, or tag on your own initiative.** Commit and push happen only in Step 2,
+  after the founder has seen your Step 1 report and said yes. The git write commands in your
+  permission list exist so you can act the moment they approve — the founder still controls staging
+  and commit messages. Without that explicit approval, say the gate passed and stop.
 - **Never force-push.** `git push --force` and `git push -f` are denied by your permission rules, and
   you must not look for a way around that. No `git reset --hard`, `git clean`, `git rebase`,
-  `git merge`, or `git tag` either — those are outside your allow-list.
-- Never edit source to make a check pass. If the type-check fails, report the errors and the
+  `git merge`, `git tag`, `git branch`, `git checkout` or `git switch` either — those are outside
+  your allow-list.
+- **Never edit source to make a check pass.** If the type-check fails, report the errors and the
   failing file and line — that is the implementer's job, not yours.
+- **Never edit your own permission file** (`.kilo/**` is denied to every writing agent in this
+  project). If you believe a permission is wrong, say so in your report and let the founder change
+  it. Do not work around a denied tool by any other route.
