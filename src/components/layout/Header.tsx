@@ -1,5 +1,13 @@
-import { Bell, CheckCircle2, ChevronDown, CloudOff, Loader2, Menu, Search } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import {
+  Bell,
+  CheckCircle2,
+  ChevronDown,
+  CloudOff,
+  Loader2,
+  Menu,
+  Search,
+} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSheets } from "@/context/SheetsContext";
 
 interface HeaderProps {
@@ -15,41 +23,69 @@ const titleMap: Record<string, string> = {
   "/settings": "Settings",
 };
 
-/** Small live indicator so the marketer knows whether their work is saved. */
+/**
+ * Small live indicator so the marketer knows whether their work is saved.
+ *
+ * It is always visible — it used to disappear on small screens, which is
+ * exactly where a failed sync went unnoticed — and it matches the colour of
+ * the sync banner. Clicking it opens Settings, where the sheet is configured.
+ */
 const SyncIndicator = () => {
   const { enabled, status } = useSheets();
-  if (!enabled) return null;
+  const navigate = useNavigate();
+
+  const openSettings = () => navigate("/settings");
+
+  if (!enabled) {
+    return (
+      <button
+        type="button"
+        onClick={openSettings}
+        className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800"
+        title="Not connected to Google Sheets — open Settings"
+      >
+        <CloudOff size={13} />
+        Not connected
+      </button>
+    );
+  }
 
   if (status === "loading" || status === "syncing") {
     return (
-      <span
-        className="hidden md:inline-flex items-center gap-1.5 text-xs text-slate-500"
-        title="Syncing with Google Sheets"
+      <button
+        type="button"
+        onClick={openSettings}
+        className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800"
+        title="Syncing with Google Sheets — open Settings"
       >
         <Loader2 size={13} className="animate-spin" />
         Syncing
-      </span>
+      </button>
     );
   }
   if (status === "error") {
     return (
-      <span
-        className="hidden md:inline-flex items-center gap-1.5 text-xs text-rose-600"
+      <button
+        type="button"
+        onClick={openSettings}
+        className="inline-flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-800"
         title="Google Sheets sync failed — open Settings"
       >
         <CloudOff size={13} />
         Sync failed
-      </span>
+      </button>
     );
   }
   return (
-    <span
-      className="hidden md:inline-flex items-center gap-1.5 text-xs text-emerald-600"
-      title="Synced with Google Sheets"
+    <button
+      type="button"
+      onClick={openSettings}
+      className="inline-flex items-center gap-1.5 text-xs text-emerald-600 hover:text-emerald-800"
+      title="Synced with Google Sheets — open Settings"
     >
       <CheckCircle2 size={13} />
       Sheet synced
-    </span>
+    </button>
   );
 };
 

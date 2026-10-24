@@ -10,12 +10,14 @@ permission:
     "**/.kilo/**": deny
   bash:
     "*": deny
-    "npm run lint*": allow
-    "npm run build*": allow
-    "npx tsc*": allow
+    "npm run lint": allow
+    "npm run build": allow
     "git status": allow
-    "git diff*": allow
-    "git log*": allow
+    "git diff": allow
+    "git log": allow
+  task:
+    "*": deny
+
 ---
 
 You build and edit the **UI** of KOL-Dashboard: pages, components, layout, charts, and the public

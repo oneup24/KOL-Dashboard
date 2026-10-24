@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  AlertTriangle,
   CalendarDays,
   Info,
   ListChecks,
@@ -20,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useCampaigns } from "@/context/CampaignsContext";
+import { useSheets } from "@/context/SheetsContext";
 import { stores } from "@/data/stores";
 import {
   DEFAULT_PROMO_CODE_TEMPLATE,
@@ -258,6 +260,7 @@ const toNumber = (raw: string): number => {
 
 const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
   const { addCampaign, updateCampaign } = useCampaigns();
+  const { enabled: sheetEnabled } = useSheets();
   const uid = useId();
   // Seeded lazily so a dialog that mounts straight into "edit" mode is
   // pre-filled on the very first render (no flash of an empty form).
@@ -267,10 +270,14 @@ const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
   const [tab, setTab] = useState<TabId>("basics");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
+  // Set when the marketer tries to save while no sheet is connected: the
+  // campaign would live in this browser only, and be gone on the next reload.
+  const [confirmNoSheet, setConfirmNoSheet] = useState<boolean>(false);
 
   useEffect(() => {
     if (!mode) return;
     setError(null);
+    setConfirmNoSheet(false);
     setTab("basics");
     setForm(mode.kind === "edit" ? toForm(mode.campaign) : blank);
   }, [mode]);
@@ -364,6 +371,24 @@ const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
     campaignCode: form.campaignCode.trim().toUpperCase(),
   });
 
+  const save = () => {
+    setSaving(true);
+    const fields = buildFields();
+    try {
+      if (mode.kind === "create") {
+        addCampaign(fields);
+      } else {
+        updateCampaign(mode.campaign.id, fields);
+      }
+      setConfirmNoSheet(false);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save campaign.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form.name.trim() || !form.endDate.trim() || !form.productName.trim()) {
@@ -375,20 +400,13 @@ const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
       setError("Campaign code must be 2–4 letters or digits (e.g. AGS).");
       return;
     }
-    setSaving(true);
-    const fields = buildFields();
-    try {
-      if (mode.kind === "create") {
-        addCampaign(fields);
-      } else {
-        updateCampaign(mode.campaign.id, fields);
-      }
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save campaign.");
-    } finally {
-      setSaving(false);
+    // Without a sheet the campaign only exists in this browser — it is lost
+    // on the next refresh. The marketer is told, but never blocked.
+    if (!sheetEnabled && !confirmNoSheet) {
+      setConfirmNoSheet(true);
+      return;
     }
+    save();
   };
 
   const isEdit = mode.kind === "edit";
@@ -426,6 +444,35 @@ const NewCampaignDialog = ({ mode, onClose }: NewCampaignDialogProps) => {
             <X size={18} />
           </button>
         </div>
+
+        {confirmNoSheet ? (
+          <div className="flex-shrink-0 border-b border-amber-200 bg-amber-50 px-6 py-3">
+            <p className="text-sm font-semibold text-amber-900 flex items-start gap-2">
+              <AlertTriangle size={15} className="mt-0.5 flex-shrink-0" />
+              No Google Sheet is connected
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              This campaign will only exist in this browser. It is lost on refresh, and nobody else
+              can see it. Connect a sheet in Settings to keep it — or save it anyway.
+            </p>
+            <div className="mt-2.5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmNoSheet(false)}
+                className="px-3 py-1.5 bg-white border border-amber-200 text-amber-900 rounded-lg text-xs font-medium hover:bg-amber-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                className="px-3 py-1.5 bg-amber-900 text-white rounded-lg text-xs font-medium hover:bg-amber-800"
+              >
+                Save anyway
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="flex-shrink-0 border-b border-slate-100 px-6">
           <div className="flex gap-1 overflow-x-auto scrollbar-thin -mb-px">

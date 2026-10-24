@@ -71,10 +71,46 @@ export interface SheetsHealth {
   tabs: string[];
 }
 
-export const checkHealth = async (url: string): Promise<SheetsHealth> => {
+/** What one tab of the sheet looks like, as reported by `?action=diagnose`. */
+export interface SheetTabDiagnostics {
+  /** Physical width of the tab (a fresh sheet is 26 columns wide). */
+  columns: number;
+  /** How many cells the header row has. */
+  headerColumns: number;
+  /** Last row with any content (1 when the tab holds only a header). */
+  lastRow: number;
+  /** Rows that carry a record (a non-empty id in column A). */
+  rows: number;
+  /** Whether the header has an `id` column — without it rows cannot be addressed. */
+  hasIdColumn: boolean;
+  /** Columns the script expects but the header does not have. */
+  missing: string[];
+}
+
+/** The whole-sheet report returned by `?action=diagnose`. */
+export interface SheetDiagnostics {
+  spreadsheet: string;
+  spreadsheetId: string;
+  spreadsheetUrl: string;
+  tabs: Record<string, SheetTabDiagnostics>;
+}
+
+/**
+ * GETs `<url>?action=<action>` and returns the parsed payload.
+ *
+ * Every GET path fails the same way — the web app cannot be reached, it asks
+ * for a sign-in (deployment access is restricted) or it is not deployed at all
+ * — so those cases are handled once here and turned into the same helpful
+ * SheetsError everywhere.
+ */
+const getPayload = async (
+  url: string,
+  action: string,
+  failureMessage: string,
+): Promise<Record<string, unknown>> => {
   let res: Response;
   try {
-    res = await request(`${url}?action=health`);
+    res = await request(`${url}?action=${action}`);
   } catch {
     throw new SheetsError("Could not reach the web app.", networkHint);
   }
@@ -94,8 +130,31 @@ export const checkHealth = async (url: string): Promise<SheetsHealth> => {
   }
   const payload = parsePayload(await res.text());
   if (!payload.ok) {
-    throw new SheetsError(String(payload.error ?? "Health check failed."), networkHint);
+    throw new SheetsError(String(payload.error ?? failureMessage), networkHint);
   }
+  return payload;
+};
+
+/** Normalises the per-tab report so the UI never has to guard on shape. */
+const parseTabs = (raw: unknown): Record<string, SheetTabDiagnostics> => {
+  const out: Record<string, SheetTabDiagnostics> = {};
+  const source = (raw ?? {}) as Record<string, Partial<SheetTabDiagnostics> | undefined>;
+  Object.keys(source).forEach((name) => {
+    const tab = source[name] ?? {};
+    out[name] = {
+      columns: Number(tab.columns ?? 0),
+      headerColumns: Number(tab.headerColumns ?? 0),
+      lastRow: Number(tab.lastRow ?? 0),
+      rows: Number(tab.rows ?? 0),
+      hasIdColumn: Boolean(tab.hasIdColumn),
+      missing: Array.isArray(tab.missing) ? tab.missing.map(String) : [],
+    };
+  });
+  return out;
+};
+
+export const checkHealth = async (url: string): Promise<SheetsHealth> => {
+  const payload = await getPayload(url, "health", "Health check failed.");
   return {
     spreadsheet: String(payload.spreadsheet ?? ""),
     spreadsheetId: String(payload.spreadsheetId ?? ""),
@@ -105,36 +164,28 @@ export const checkHealth = async (url: string): Promise<SheetsHealth> => {
 };
 
 export const readSnapshot = async (url: string): Promise<SheetsSnapshot> => {
-  let res: Response;
-  try {
-    res = await request(`${url}?action=read`);
-  } catch {
-    throw new SheetsError("Could not reach the web app.", networkHint);
-  }
-  if (isSignInRedirect(res)) {
-    throw new SheetsError(
-      "The web app asked us to sign in.",
-      "The deployment access is restricted. Open Deploy > Manage deployments > Edit and set " +
-        "“Who has access” to “Anyone”, then choose a new version.",
-    );
-  }
-  if (res.status === 404) {
-    throw new SheetsError(
-      "The web app has not been deployed yet.",
-      "Open the Apps Script editor > Deploy > New deployment > Web app. Execute as “Me”, " +
-        "access “Anyone”. Then copy the /macros/s/.../exec URL.",
-    );
-  }
-  const payload = parsePayload(await res.text());
-  if (!payload.ok) {
-    throw new SheetsError(String(payload.error ?? "Read failed."), networkHint);
-  }
+  const payload = await getPayload(url, "read", "Read failed.");
   const data = (payload.data ?? {}) as Partial<SheetsSnapshot>;
   return {
     campaigns: data.campaigns ?? [],
     kols: data.kols ?? [],
     applications: data.applications ?? [],
     messageLog: data.messageLog ?? [],
+  };
+};
+
+/**
+ * Asks the web app what the sheet actually looks like right now — one entry
+ * per tab. The marketer cannot open the Apps Script console, so this is how
+ * a silent write failure gets debugged.
+ */
+export const diagnoseSheet = async (url: string): Promise<SheetDiagnostics> => {
+  const payload = await getPayload(url, "diagnose", "Diagnostics failed.");
+  return {
+    spreadsheet: String(payload.spreadsheet ?? ""),
+    spreadsheetId: String(payload.spreadsheetId ?? ""),
+    spreadsheetUrl: String(payload.spreadsheetUrl ?? ""),
+    tabs: parseTabs(payload.tabs),
   };
 };
 

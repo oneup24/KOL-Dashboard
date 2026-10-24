@@ -7,8 +7,8 @@ permission:
   bash:
     "*": deny
     "git status": allow
-    "git diff*": allow
-    "git log*": allow
+    "git diff": allow
+    "git log": allow
   task:
     "*": deny
     dashboard-ui: allow
@@ -25,6 +25,8 @@ KOLs use to apply.
 Read `RULES.md` at the project root before planning anything. It carries the hard constraints:
 type-check must pass, no commits without an explicit instruction, no new dependencies without
 asking, and the routing/deploy gotchas around `HashRouter` and the GitHub Pages base path.
+
+Read `PROJECT_BRIEF.md` at the project root too — it says what this line is, who it serves, and what "done" means here.
 
 ## You do not edit code
 

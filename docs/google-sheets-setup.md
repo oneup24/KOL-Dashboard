@@ -15,7 +15,7 @@ persist to a Google Sheet. This guide sets up the Sheet.
 
 1. In the Sheet: **Extensions → Apps Script**.
 2. Delete the placeholder `Code.gs` content and paste the whole of
-   [`scripts/google-sheets.gas`](./scripts/google-sheets.gas) from this repo.
+   [`scripts/google-sheets.gas`](../scripts/google-sheets.gas) from this repo.
 3. Click the disk icon to save.
 
 ### Point it at your Sheet
@@ -75,6 +75,69 @@ You should see **Synced** and the spreadsheet name in the status card. The heade
 
 The URL is stored in this browser only (`localStorage`), so each device that uses the
 dashboard needs it set once.
+
+---
+
+## Diagnosing a silent write failure
+
+> Requires the script from this repo (the `?action=diagnose` endpoint was added
+> with the setup-version guard). Redeploy a **new version** after updating it.
+
+The dashboard used to fail a write without saying anything. Two things make that
+visible now:
+
+1. **Every write is tracked** — the dashboard state keeps `lastWrite` (which
+   collection, which id, whether it worked, and the reason when it did not),
+   so the UI can show a failed write instead of swallowing it.
+2. **The script can be asked what the sheet looks like**, so you never have to
+   open the Apps Script console:
+
+   ```
+   GET <your web app URL>?action=diagnose
+   ```
+
+   Paste that URL into a browser tab (or `curl` it). It answers with a report
+   per tab:
+
+   ```json
+   {
+     "ok": true,
+     "spreadsheet": "FX Creations — KOL Dashboard",
+     "spreadsheetId": "1AbC…",
+     "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1AbC…/edit",
+     "tabs": {
+       "Campaigns": {
+         "columns": 44,
+         "headerColumns": 44,
+         "lastRow": 1,
+         "rows": 0,
+         "hasIdColumn": true,
+         "missing": []
+       }
+     }
+   }
+   ```
+
+   | Field | What it means |
+   |---|---|
+   | `columns` | How wide the tab is (a brand-new sheet is 26 columns wide). |
+   | `headerColumns` | How many cells the header row has. |
+   | `lastRow` | The last row with any content. `1` means the tab holds nothing but a header. |
+   | `rows` | How many rows actually hold a record (a non-empty id in column A). |
+   | `hasIdColumn` | Whether the header has an `id` column. Without it the script cannot tell rows apart and every write fails. |
+   | `missing` | Columns the script expects but the header does not have. An empty list means the header is complete. |
+
+   The report covers all four tabs: `Campaigns`, `KOLs`, `Applications` and
+   `MessageLog`.
+
+### The script repairs itself
+
+Every request runs `ensureSetup()` first, and `ensureSetup()` runs `setup()`
+once per script version. Redeploy the fixed script and the first request
+repairs the sheet by itself — a `Campaigns` tab that still has the old header
+with four duplicated fee columns gets the canonical header written over it (the
+tab is empty), and any tab the script expects but does not find is created.
+Nothing to run by hand; running `setup` from the editor (step 3) stays optional.
 
 ---
 
@@ -170,3 +233,10 @@ But the **Show the fee details to KOLs** toggle is the important one:
 **"Object has no property 'id'"**
 - A row in one of the tabs was edited by hand and the `id` column was cleared. Every record
   needs an id in column A.
+
+**A record never showed up in the sheet**
+- Run `<web app URL>?action=diagnose` (see above) and look at the tab in question.
+- If `rows` is 0 but you know you added records, the write failed — check the Apps Script Executions panel.
+- If `missing` is not empty, the tab header is out of date — redeploy the script; the next request
+  repairs it.
+- If `hasIdColumn` is `false`, the header has no `id` column, so nothing can be written at all.

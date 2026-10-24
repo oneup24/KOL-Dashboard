@@ -99,27 +99,107 @@ const renderPreviewPage = (c: PreviewCampaign, base: string, siteUrl: string): s
 };
 
 /**
- * Base-aware 404. The app uses hash routing, so every real route lives on the
- * index document — this just sends a visitor who hit a bare path back to it,
- * preserving whatever hash they arrived with.
+ * The 404 page is a TERMINAL branded page, not a router fallback.
+ *
+ * It deliberately contains no script and performs no navigation: a KOL who
+ * follows a dead share link must never be bounced into the app, because the
+ * app root is the marketer's dashboard and it holds every KOL's contact
+ * details. The page renders the FX Creations brand, states plainly that the
+ * link is not available, and points at the public website — the only safe
+ * destination for a stranger.
+ *
+ * It is served for any unknown path on the host (including the root when the
+ * app itself is missing), so it has to stand on its own.
  */
-const renderNotFound = (base: string): string => `<!doctype html>
+const renderNotFound = (): string => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>FX Creations KOL</title>
-<script>
-  location.replace(${JSON.stringify(base)} + (location.hash || ""));
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Link unavailable — FX Creations</title>
+<meta name="description" content="This link is not available." />
+<meta name="robots" content="noindex, nofollow" />
 <style>
-  body { margin: 0; display: grid; place-items: center; min-height: 100vh; font-family: ui-sans-serif, system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
-  p { color: #475569; font-size: 0.9375rem; }
+  :root { color-scheme: light; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 3rem 1.5rem;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    width: 100%;
+    max-width: 30rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgb(15 23 42 / 0.06);
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 0.75rem; }
+  .mark {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    background: #0f172a;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.125rem;
+    letter-spacing: -0.02em;
+  }
+  .wordmark { font-weight: 700; font-size: 0.9375rem; color: #1e293b; letter-spacing: -0.01em; }
+  h1 { margin: 2rem 0 0; font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; }
+  p { margin: 0.75rem 0 0; color: #475569; font-size: 0.9375rem; line-height: 1.65; }
+  .cta {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.75rem 1.25rem;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 0.625rem;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .cta:hover { background: #1e293b; }
+  .foot { margin-top: 2.5rem; font-size: 0.75rem; color: #94a3b8; }
 </style>
 </head>
-<body><p>Taking you to the dashboard…</p></body>
+<body>
+  <main class="card">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">FX</span>
+      <span class="wordmark">FX Creations</span>
+    </div>
+    <h1>This link isn&rsquo;t available</h1>
+    <p>
+      The link you opened has expired, was mistyped, or was never published. If a member of our
+      team sent it to you, please ask them to send it again.
+    </p>
+    <a class="cta" href="https://fxcreations.com" target="_blank" rel="noreferrer noopener">Visit fxcreations.com</a>
+    <p class="foot">&copy; FX Creations</p>
+  </main>
+</body>
 </html>
 `;
 
+/**
+ * Emits the static link-preview pages (one per campaign, with the Open Graph
+ * tags) plus the 404 page.
+ *
+ * The 404 is a terminal branded page, NOT a router fallback: it never hands
+ * the visitor over to the app, so a dead share link can never drop a KOL into
+ * the marketer dashboard.
+ */
 const previewPages = (
   campaigns: PreviewCampaign[],
   siteUrl: string,
@@ -138,7 +218,7 @@ const previewPages = (
     this.emitFile({
       type: "asset",
       fileName: "404.html",
-      source: renderNotFound(base),
+      source: renderNotFound(),
     });
   },
 });

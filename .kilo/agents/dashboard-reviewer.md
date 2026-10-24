@@ -10,6 +10,9 @@ permission:
     "git status": allow
     "git diff*": allow
     "git log*": allow
+  task:
+    "*": deny
+
 ---
 
 You are the **read-only reviewer** for KOL-Dashboard. You find problems; you do not fix them. Your

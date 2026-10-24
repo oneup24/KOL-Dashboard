@@ -16,3 +16,6 @@ vite.config.js
 src/**/*.js
 src/**/*.d.ts
 !src/vite-env.d.ts
+
+# Transient release message consumed by scripts/publish.sh
+.release-message

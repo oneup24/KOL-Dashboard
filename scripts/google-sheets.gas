@@ -25,6 +25,21 @@
  * You can run the `setup` function once from the editor to create the tabs
  * immediately instead of waiting for the first request.
  *
+ * You do not have to: every request runs `ensureSetup()` first, and
+ * `ensureSetup()` runs `setup()` once per script version. Redeploy a fixed
+ * script and the first request repairs an old sheet (a Campaigns tab with
+ * duplicated fee columns, a tab that does not exist yet) by itself.
+ *
+ * DIAGNOSING
+ * ----------
+ * The marketer cannot see the Apps Script console, so the write path can be
+ * inspected from outside:
+ *
+ *   GET <web app URL>?action=diagnose
+ *
+ * returns a per-tab report (columns, header size, record count, whether the
+ * id column is there, which expected columns are missing).
+ *
  * Every time you change the script you must Deploy > Manage deployments >
  * Edit > Version: New version, then re-deploy.
  *
@@ -55,6 +70,15 @@ const TABS = {
   applications: "Applications",
   messageLog: "MessageLog",
 };
+
+/**
+ * Bumped whenever the sheet layout changes in a way setup() has to repair.
+ * The script stores this value in its script properties and re-runs setup()
+ * once per version, so redeploying a fixed script heals an old sheet
+ * (e.g. a Campaigns tab that still has duplicated fee columns) without the
+ * marketer having to run anything by hand.
+ */
+const SETUP_VERSION = "2";
 
 /**
  * The columns each tab should have.
@@ -161,6 +185,13 @@ function hasRecords(sheet) {
   return ids.some(function (row) { return row[0] !== "" && row[0] !== null; });
 }
 
+/** How many rows of the tab hold a record (a non-empty id in column A). */
+function countRecords(sheet) {
+  if (sheet.getLastRow() < 2) return 0;
+  const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  return ids.filter(function (row) { return row[0] !== "" && row[0] !== null; }).length;
+}
+
 /** The current header of a tab, as an array of column names. */
 function headerOf(sheet) {
   if (sheet.getLastColumn() < 1) return [];
@@ -243,6 +274,85 @@ function setup() {
       .map(function (e) { return TABS[e]; })
       .join(", ")
   );
+}
+
+/**
+ * Runs setup() once per script version. This repairs a sheet whose tabs were
+ * created by an older version of this script — e.g. the Campaigns tab that
+ * still has duplicated fee columns.
+ *
+ * RECURSION GUARD: setup() calls getSpreadsheet(), and getSpreadsheet() must
+ * never call ensureSetup(). ensureSetup() is only ever called from doGet and
+ * doPost, so the chain is always
+ *
+ *     doGet / doPost -> ensureSetup -> setup -> getSpreadsheet
+ *
+ * and can never come back to ensureSetup().
+ */
+function ensureSetup() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty("SETUP_VERSION") === SETUP_VERSION) return;
+  setup();
+  props.setProperty("SETUP_VERSION", SETUP_VERSION);
+}
+
+/* ── diagnostics ────────────────────────────────────────────────────────── */
+
+/**
+ * What one tab looks like right now: its header, how many records it holds
+ * and which columns the script expects but cannot find.
+ */
+function diagnoseTab(ss, entity) {
+  const tab = TABS[entity] || entity;
+  const sheet = ss.getSheetByName(tab);
+  if (!sheet) {
+    return {
+      columns: 0,
+      headerColumns: 0,
+      lastRow: 0,
+      rows: 0,
+      hasIdColumn: false,
+      missing: wantedColumns(entity),
+    };
+  }
+
+  const header = headerOf(sheet);
+  return {
+    // Physical width of the tab (a fresh sheet is 26 columns wide).
+    columns: sheet.getMaxColumns(),
+    // How many cells the header row actually has.
+    headerColumns: header.length,
+    // Last row with any content (1 when the tab holds only a header).
+    lastRow: sheet.getLastRow(),
+    // Rows that carry a record.
+    rows: countRecords(sheet),
+    // Every record is addressed by the id in column A — without it the
+    // script cannot tell rows apart.
+    hasIdColumn: header.indexOf("id") !== -1,
+    // Columns the script wants but the header does not have.
+    missing: wantedColumns(entity).filter(function (name) {
+      return header.indexOf(name) === -1;
+    }),
+  };
+}
+
+/**
+ * A per-tab report of the sheet, so a failed write can be debugged from
+ * outside the Apps Script console (the marketer cannot see console logs).
+ */
+function diagnose() {
+  const ss = getSpreadsheet();
+  const tabs = {};
+  Object.keys(TABS).forEach(function (entity) {
+    tabs[TABS[entity]] = diagnoseTab(ss, entity);
+  });
+  return {
+    ok: true,
+    spreadsheet: ss.getName(),
+    spreadsheetId: ss.getId(),
+    spreadsheetUrl: ss.getUrl(),
+    tabs: tabs,
+  };
 }
 
 /* ── read ──────────────────────────────────────────────────────────────── */
@@ -380,6 +490,17 @@ function remove(entity, id) {
 
 function doGet(e) {
   try {
+    // Self-heal before answering: a redeployed script repairs an old sheet
+    // on its first request. The lock keeps two simultaneous first requests
+    // from both appending the same column.
+    const lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      ensureSetup();
+    } finally {
+      lock.releaseLock();
+    }
+
     const action = (e && e.parameter && e.parameter.action) || "read";
     if (action === "health") {
       const ss = getSpreadsheet();
@@ -394,6 +515,9 @@ function doGet(e) {
     if (action === "setup") {
       return json({ ok: true, message: setup() });
     }
+    if (action === "diagnose") {
+      return json(diagnose());
+    }
     return json({ ok: true, data: readAll() });
   } catch (err) {
     return json({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -404,6 +528,9 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
+    // Self-heal before writing, under the same lock the write uses — so a
+    // repair can never race a write and append the same column twice.
+    ensureSetup();
     const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
     const action = body.action || "upsert";
 

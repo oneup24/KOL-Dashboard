@@ -8,9 +8,25 @@
   # which lives under /KOL-Dashboard/. See vite.config.ts.
   BASE_PATH = "/"
 
-# The app uses hash routing, so every route lives on the index document and
-# needs no rewrite. The static /c/<slug>/ pages are real files and are served
-# as-is; anything else falls through to 404.html, which bounces back to the app.
+# The app uses hash routing, so every in-app route lives on the index document
+# and needs no rewrite. The static /c/<slug>/ pages are real files and are
+# served as-is; anything else falls through to 404.html, which is a static
+# branded page and never navigates into the app.
+
+# A campaign created at runtime has no static page (those are only generated at
+# build time), so /c/<slug>/ would 404. This rewrite lets those paths fall
+# through to the SPA, which turns the path into the #/c/<slug> hash route.
+#
+# Netlify serves a real file from the publish directory before it applies
+# rewrite rules, so the build-time preview pages — with their Open Graph tags —
+# still win. Only runtime campaigns reach this rewrite.
+#
+# Deliberately NOT a blanket "/*" rewrite: every other unknown path must still
+# reach 404.html.
+[[redirects]]
+  from = "/c/*"
+  to = "/index.html"
+  status = 200
 
 [[headers]]
   for = "/assets/*"

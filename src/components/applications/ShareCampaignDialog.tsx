@@ -33,10 +33,29 @@ const buildPreviewUrl = (slug: string): string => {
   return `${origin}${root}c/${slug}/`;
 };
 
+/**
+ * True when the app is served from the domain root.
+ *
+ * That is the only place the clean `/c/<slug>/` link can work: the host has
+ * to rewrite that path to the SPA (Netlify does, via the `/c/*` rule in
+ * netlify.toml). Under a sub-path — the GitHub Pages project page lives at
+ * /KOL-Dashboard/ — there is no such rewrite, so the clean link would 404
+ * and the hash link is the only one that can be offered.
+ */
+const isServedFromRoot = (): boolean => {
+  if (typeof window === "undefined") return false;
+  // The build base says where the app is mounted, which does not change while
+  // the marketer browses; the live path covers the case where the app is
+  // served from the domain root.
+  if (import.meta.env.BASE_URL === "/") return true;
+  return window.location.pathname === "/";
+};
+
 const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) => {
   const url = buildPublicUrl(campaign.slug);
   const previewUrl = buildPreviewUrl(campaign.slug);
-  const [copied, setCopied] = useState<"url" | "fallback" | "text" | null>(null);
+  const atRoot = isServedFromRoot();
+  const [copied, setCopied] = useState<"preview" | "app" | "text" | null>(null);
   const uid = useId();
 
   // Escape closes the dialog.
@@ -48,7 +67,7 @@ const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) =>
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const copy = async (text: string, key: "url" | "fallback" | "text") => {
+  const copy = async (text: string, key: "preview" | "app" | "text") => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(key);
@@ -110,51 +129,87 @@ const ShareCampaignDialog = ({ campaign, onClose }: ShareCampaignDialogProps) =>
             </div>
           </div>
 
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-              Public link
-            </p>
-            <div className="flex">
-              <input
-                readOnly
-                value={previewUrl}
-                onFocus={(e) => e.currentTarget.select()}
-                className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-l-lg text-xs font-mono text-slate-700 outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => copy(previewUrl, "url")}
-                className="px-3 inline-flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium rounded-r-lg hover:bg-slate-800"
-              >
-                <Copy size={14} /> {copied === "url" ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <p className="mt-1.5 text-xs text-slate-500">
-              Shows the product in the Messenger / WhatsApp preview. Falls back to the app if the
-              page has not been built yet.
-            </p>
-          </div>
+          {atRoot ? (
+            <>
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Public link
+                </p>
+                <div className="flex">
+                  <input
+                    readOnly
+                    value={previewUrl}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-l-lg text-xs font-mono text-slate-700 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copy(previewUrl, "preview")}
+                    className="px-3 inline-flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium rounded-r-lg hover:bg-slate-800"
+                  >
+                    <Copy size={14} /> {copied === "preview" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-500">
+                  Shows the product in the Messenger / WhatsApp preview. Falls back to the app if the
+                  page has not been built yet.
+                </p>
+              </div>
 
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-              Direct app link
-            </p>
-            <div className="flex">
-              <input
-                readOnly
-                value={url}
-                onFocus={(e) => e.currentTarget.select()}
-                className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-l-lg text-xs font-mono text-slate-700 outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => copy(url, "fallback")}
-                className="px-3 inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-r-lg hover:bg-slate-50"
-              >
-                <Copy size={14} /> {copied === "fallback" ? "Copied" : "Copy"}
-              </button>
-            </div>
-          </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Direct app link
+                </p>
+                <div className="flex">
+                  <input
+                    readOnly
+                    value={url}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-l-lg text-xs font-mono text-slate-700 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copy(url, "app")}
+                    className="px-3 inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-r-lg hover:bg-slate-50"
+                  >
+                    <Copy size={14} /> {copied === "app" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/*
+                This host has no rewrite for /c/<slug>/, so the clean link
+                would 404. Offer the hash link only — a link that cannot work
+                is worse than no link at all.
+              */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Public link
+                </p>
+                <div className="flex">
+                  <input
+                    readOnly
+                    value={url}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-l-lg text-xs font-mono text-slate-700 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copy(url, "app")}
+                    className="px-3 inline-flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium rounded-r-lg hover:bg-slate-800"
+                  >
+                    <Copy size={14} /> {copied === "app" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-500">
+                  Opens the campaign page straight in the app. This site is hosted under a
+                  sub-path, so the shortened link without the app address is not available.
+                </p>
+              </div>
+            </>
+          )}
 
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">

@@ -9,11 +9,14 @@ import {
   RefreshCw,
   Save,
   Settings2,
+  ShieldAlert,
+  Stethoscope,
 } from "lucide-react";
-import { useSheets } from "@/context/SheetsContext";
+import { useSheets, type SheetDiagnostics } from "@/context/SheetsContext";
 import { useApplications } from "@/context/ApplicationsContext";
 import { useCampaigns } from "@/context/CampaignsContext";
 import { useKol } from "@/context/KolContext";
+import { isDashboardGated } from "@/components/layout/dashboardAccess";
 import PageHeader from "@/components/shared/PageHeader";
 import SectionCard from "@/components/shared/SectionCard";
 
@@ -65,8 +68,10 @@ const SettingsPage = () => {
     errorHint,
     spreadsheetName,
     spreadsheetUrl,
+    lastWrite,
     refresh,
     testConnection,
+    diagnose,
     triggerBuild,
     pushAll,
   } = useSheets();
@@ -78,6 +83,8 @@ const SettingsPage = () => {
   const [hookDraft, setHookDraft] = useState(buildHookUrl);
   const [saved, setSaved] = useState(false);
   const [confirmSeeding, setConfirmSeeding] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<SheetDiagnostics | null>(null);
+  const [diagnosing, setDiagnosing] = useState(false);
 
   const meta = statusMeta[status] ?? statusMeta.idle;
   const StatusIcon = meta.icon;
@@ -89,12 +96,47 @@ const SettingsPage = () => {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  /**
+   * Asks the web app what the sheet actually looks like. `diagnose()` rejects
+   * on failure — the context has already recorded the error by then, so the
+   * rejection is swallowed here.
+   */
+  const runDiagnostics = () => {
+    setDiagnosing(true);
+    void diagnose()
+      .then((report) => setDiagnostics(report))
+      .catch(() => setDiagnostics(null))
+      .finally(() => setDiagnosing(false));
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Settings"
         description="Connect the dashboard to a Google Sheet so campaigns, KOLs and applications survive a refresh."
       />
+
+      {!isDashboardGated() ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+            <ShieldAlert size={16} className="flex-shrink-0" />
+            This dashboard is not protected
+          </p>
+          <p className="mt-2 text-sm text-amber-800">
+            Anyone with the link can open the dashboard and read every KOL&rsquo;s phone number,
+            email and application history. Set{" "}
+            <code className="font-mono bg-amber-100 px-1 rounded">VITE_DASHBOARD_CODE</code> in
+            Netlify under{" "}
+            <span className="font-medium">Site configuration → Environment variables</span>, then
+            redeploy — the dashboard will ask for that code before it opens.
+          </p>
+          <p className="mt-2 text-xs text-amber-700">
+            The code is a speed bump, not real security: it ships inside the app bundle. The real
+            boundary is who can open the Google Sheet, or putting a password / Cloudflare Access in
+            front of the site.
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -232,6 +274,85 @@ const SettingsPage = () => {
               </button>
             </div>
           </SectionCard>
+
+          <SectionCard
+            title="Diagnostics"
+            description="Asks the web app what each tab of the sheet actually looks like right now."
+          >
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={runDiagnostics}
+                disabled={diagnosing || !url.trim()}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {diagnosing ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Stethoscope size={14} />
+                )}
+                {diagnosing ? "Running…" : "Run diagnostics"}
+              </button>
+
+              {error ? (
+                <div className="rounded-lg bg-rose-50 border border-rose-200 p-3">
+                  <p className="text-sm font-medium text-rose-800 flex items-start gap-2">
+                    <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />
+                    {error}
+                  </p>
+                  {errorHint ? (
+                    <p className="mt-1.5 text-xs text-rose-700 pl-6">{errorHint}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {diagnostics ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="text-left text-slate-500 uppercase tracking-wider">
+                        <th className="py-2 pr-3 font-semibold">Tab</th>
+                        <th className="py-2 pr-3 font-semibold">Rows</th>
+                        <th className="py-2 pr-3 font-semibold">Columns</th>
+                        <th className="py-2 pr-3 font-semibold">Last row</th>
+                        <th className="py-2 pr-3 font-semibold">ID column</th>
+                        <th className="py-2 font-semibold">Missing columns</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-slate-700">
+                      {Object.entries(diagnostics.tabs).map(([name, tab]) => (
+                        <tr key={name} className="border-t border-slate-100">
+                          <td className="py-2 pr-3 font-medium text-slate-800">{name}</td>
+                          <td className="py-2 pr-3">{tab.rows}</td>
+                          <td className="py-2 pr-3">{tab.columns}</td>
+                          <td className="py-2 pr-3">{tab.lastRow}</td>
+                          <td className="py-2 pr-3">
+                            {tab.hasIdColumn ? (
+                              <span className="text-emerald-700">yes</span>
+                            ) : (
+                              <span className="text-rose-700">no</span>
+                            )}
+                          </td>
+                          <td className="py-2">
+                            {tab.missing.length > 0 ? (
+                              <span className="text-rose-700">{tab.missing.join(", ")}</span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+
+              <p className="text-xs text-slate-500">
+                If <span className="font-mono text-slate-600">rows</span> is 0 but you know you added
+                records, the write failed — check the Apps Script Executions panel.
+              </p>
+            </div>
+          </SectionCard>
         </div>
 
         <div className="space-y-6">
@@ -273,6 +394,37 @@ const SettingsPage = () => {
                           minute: "2-digit",
                         })
                       : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wider text-slate-500">Last write</dt>
+                  <dd className="text-slate-800">
+                    {lastWrite ? (
+                      <>
+                        <span
+                          className={
+                            lastWrite.ok ? "text-emerald-700" : "text-rose-700"
+                          }
+                        >
+                          {lastWrite.entity} — {lastWrite.ok ? "saved" : "failed"}
+                        </span>
+                        <span className="text-slate-500">
+                          {" · "}
+                          {new Date(lastWrite.at).toLocaleString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })}
+                        </span>
+                        {lastWrite.error ? (
+                          <p className="mt-1 text-xs text-rose-700">{lastWrite.error}</p>
+                        ) : null}
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </dd>
                 </div>
               </dl>
