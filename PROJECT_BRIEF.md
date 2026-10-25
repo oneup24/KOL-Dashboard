@@ -1,7 +1,8 @@
 # Project Brief — KOL Dashboard
 
 > What this line is, who it serves, what "done" means. Read alongside `RULES.md`
-> (how to work here) and `scripts/google-sheets-setup.md` (the Sheets integration).
+> (how to work here), `MASTER_PLAN_V1.0.md` (the phased plan) and
+> `scripts/google-sheets-setup.md` (the Sheets integration).
 
 ## What it is
 
@@ -21,7 +22,8 @@ React 18 + TypeScript (`strict`) + Vite 5 + Tailwind 3. `react-router-dom` 6 wit
 
 Deployed to **both** GitHub Pages (`/KOL-Dashboard/` base) and Netlify (`/` base). `vite.config.ts`
 reads `BASE_PATH` from the environment and emits one static Open Graph page per campaign plus a
-`404.html` that bounces to the app.
+`404.html` that is a **terminal branded page** — it never redirects into the app, so no unknown
+public link can land a KOL in the dashboard.
 
 ## The Google Sheets backbone
 
@@ -32,10 +34,10 @@ Campaigns and applications persist to a Google Sheet via Apps Script
 That single fact drives the two known constraints:
 
 1. A public KOL applying from their own phone has no Sheets URL, so their application does not
-   reach the sheet. It dies with the tab.
+   reach the sheet. It dies with the tab. *(Phase 8 replaces this with a server-side write.)*
 2. `campaign-seeds.json` is the source for both the app's seed campaigns and the static Open Graph
-   pages, and nothing regenerates it — so a campaign created in the dashboard is invisible to
-   visitors until that file is rebuilt.
+   pages, and nothing regenerates it — so a campaign created in the dashboard gets a working URL
+   but no rich link preview until the site is rebuilt. *(A Netlify build hook closes this.)*
 
 ## Who it serves
 

@@ -3,7 +3,7 @@
 ## Stack
 - React 18 + TypeScript (`strict`) + Vite 5 + Tailwind 3
 - `react-router-dom` 6, `recharts` 2 for charts, `lucide-react` for icons
-- No backend yet. The data layer is in-memory: React Context over mock/seed data.
+- Persistence is **Google Sheets** via an Apps Script web app (`scripts/google-sheets.gas`), not a conventional backend. The script URL is configured per browser in `localStorage` — see `docs/google-sheets-setup.md`.
 
 ## Commands
 - `npm run dev` — dev server on `:5173`, base path `/`
